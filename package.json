@@ -1,0 +1,15 @@
+{
+  "name": "bored-game",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --watch",
+    "serverBuild": "tsc --watch server.ts --module 'es2022'",
+    "server": "node server"
+  },
+  "dependencies": {
+    "typescript": "^5.3.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.19"
+  }
+}

@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ES2022",
+        "strict": true,
+        "rootDir": "./src",
+        "outDir": "./dist",
+    },
+    "files": [
+        // "server.ts",
+        "src/boredgame.ts",
+        "src/m4.ts",
+        "src/OBJFile.ts"
+    ]
+}
