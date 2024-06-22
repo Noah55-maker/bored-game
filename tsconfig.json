@@ -10,6 +10,7 @@
         // "server.ts",
         "src/boredgame.ts",
         "src/m4.ts",
-        "src/OBJFile.ts"
+        "src/OBJFile.ts",
+        "src/renderer.ts"
     ]
 }
