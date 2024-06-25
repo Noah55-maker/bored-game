@@ -38,8 +38,14 @@ export class GamePiece {
         let matrix = m4.orthographic(-.25, .25, -.25, .25, -1, 1);
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
+        // floating in the sky effect
         matrix = m4.translate(matrix, 0, 0.005 * Math.sin(time), 0);
+        // earthquake effect 
+        // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
         matrix = m4.translate(matrix, 0.04 * (xPosition - Math.floor(MAP_WIDTH / 2)), 0, 0.04 * (yPosition - Math.floor(MAP_HEIGHT / 2)));
+        // const d = [];
+        // for (let i = 0; i < this.diffuse.length; i++)
+        //     d.push(this.diffuse[i] * (0.95+0.05*Math.sin(time)));
         gl.uniform3fv(diffuseUniform, this.diffuse);
         gl.uniformMatrix4fv(matrixUniform, false, matrix);
         gl.drawArrays(gl.TRIANGLES, 0, this.numVerticies);

@@ -29,6 +29,17 @@ const ISLAND_MAP = [
     [WATER, WATER, PLAINS, PLAINS, COAST, PLAINS, PLAINS, WATER, WATER],
     [WATER, WATER, WATER, WATER, WATER, WATER, COAST, WATER, WATER]
 ];
+const OTHER_MAP = [
+    [OCEAN, MOUNTAIN, SNOW, SNOW, COAST, WATER, WATER, OCEAN, OCEAN],
+    [OCEAN, OCEAN, MOUNTAIN, SNOW, FOREST, WATER, OCEAN, OCEAN, VOLCANO],
+    [OCEAN, OCEAN, MOUNTAIN, FOREST, FOREST, FOREST, OCEAN, OCEAN, VOLCANO],
+    [OCEAN, OCEAN, SNOW, MOUNTAIN, PLAINS, COAST, FOREST, PLAINS, PLAINS],
+    [SNOW, SNOW, OCEAN, GRASS, PLAINS, WATER, WATER, PLAINS, COAST],
+    [FOREST, FOREST, FOREST, FOREST, PLAINS, PLAINS, WATER, WATER, WATER],
+    [FOREST, MOUNTAIN, FOREST, PLAINS, PLAINS, PLAINS, PLAINS, PLAINS, WATER],
+    [MOUNTAIN, MOUNTAIN, FOREST, PLAINS, PLAINS, PLAINS, PLAINS, WATER, WATER],
+    [MOUNTAIN, MOUNTAIN, MOUNTAIN, MOUNTAIN, PLAINS, COAST, WATER, WATER, WATER]
+];
 const boardLayout = ISLAND_MAP;
 class Troop extends GamePiece {
     x;
@@ -47,8 +58,9 @@ class Player {
         this.troops = troops;
     }
 }
-const player1 = new Player([new Troop(0, 0)]);
+const player1 = new Player([new Troop(0, 0), new Troop(1, 1)]);
 const player2 = new Player([new Troop(MAP_WIDTH - 1, MAP_HEIGHT - 1)]);
+let playerTurn = 1;
 function drawBoard(gamePieces, time) {
     for (let y = 0; y < MAP_HEIGHT; y++) {
         for (let x = 0; x < MAP_WIDTH; x++) {
@@ -74,21 +86,28 @@ function drawBoard(gamePieces, time) {
 }
 try {
     addEventListener("keydown", (event) => {
+        const currentPlayer = (playerTurn === 1 ? player1 : player2);
         // move troop
-        if (event.key == "1" || event.key == "ArrowLeft")
-            player1.troops[0].x--;
-        else if (event.key == "9" || event.key == "ArrowRight")
-            player1.troops[0].x++;
-        else if (event.key == "3" || event.key == "ArrowDown")
-            player1.troops[0].y++;
-        else if (event.key == "7" || event.key == "ArrowUp")
-            player1.troops[0].y--;
+        if ((event.key == "1" || event.key == "ArrowLeft") && currentPlayer.troops[0].x > 0)
+            currentPlayer.troops[0].x--;
+        else if ((event.key == "9" || event.key == "ArrowRight") && currentPlayer.troops[0].x < MAP_WIDTH - 1)
+            currentPlayer.troops[0].x++;
+        else if ((event.key == "7" || event.key == "ArrowUp") && currentPlayer.troops[0].y > 0)
+            currentPlayer.troops[0].y--;
+        else if ((event.key == "3" || event.key == "ArrowDown") && currentPlayer.troops[0].y < MAP_HEIGHT - 1)
+            currentPlayer.troops[0].y++;
         // modify tile
         else if (event.key == " ")
-            if (player1.troops[0].x >= 0 && player1.troops[0].x < MAP_WIDTH &&
-                player1.troops[0].y >= 0 && player1.troops[0].y < MAP_HEIGHT) {
-                tileModifier[player1.troops[0].y][player1.troops[0].x] = !tileModifier[player1.troops[0].y][player1.troops[0].x];
+            if (currentPlayer.troops[0].x >= 0 && currentPlayer.troops[0].x < MAP_WIDTH &&
+                currentPlayer.troops[0].y >= 0 && currentPlayer.troops[0].y < MAP_HEIGHT) {
+                tileModifier[currentPlayer.troops[0].y][currentPlayer.troops[0].x] = !tileModifier[currentPlayer.troops[0].y][currentPlayer.troops[0].x];
             }
+        if (event.key == "Enter") {
+            if (playerTurn === 1)
+                playerTurn = 2;
+            else
+                playerTurn = 1;
+        }
     });
     // populate array
     for (let i = 0; i < MAP_HEIGHT; i++) {
