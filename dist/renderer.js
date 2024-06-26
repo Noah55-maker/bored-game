@@ -51,7 +51,8 @@ export class GamePiece {
         matrix = m4.translate(matrix, 0, 0.005 * Math.sin(time), 0);
         // earthquake effect 
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
-        matrix = m4.translate(matrix, 0.04 * (xPosition - Math.floor(MAP_WIDTH / 2)), 0, 0.04 * (yPosition - Math.floor(MAP_HEIGHT / 2)));
+        matrix = m4.translate(matrix, 0.04 * (xPosition - ((MAP_WIDTH - 1) / 2)), 0, 0.04 * (yPosition - ((MAP_HEIGHT - 1) / 2)));
+        // changing color brightness
         // const d = [];
         // for (let i = 0; i < this.diffuse.length; i++)
         //     d.push(this.diffuse[i] * (0.95+0.05*Math.sin(time)));
