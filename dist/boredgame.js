@@ -1,9 +1,11 @@
 import { init } from "./renderer";
 import { GamePiece } from "./renderer";
 import { showError } from "./renderer";
-const MAP_WIDTH = 9;
-const MAP_HEIGHT = 9;
+import perlinNoise from "./noise";
+const MAP_WIDTH = 35;
+const MAP_HEIGHT = 35;
 const tileModifier = [];
+// change this to be `new Array()`
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -40,7 +42,7 @@ const OTHER_MAP = [
     [MOUNTAIN, MOUNTAIN, FOREST, PLAINS, PLAINS, PLAINS, PLAINS, WATER, WATER],
     [MOUNTAIN, MOUNTAIN, MOUNTAIN, MOUNTAIN, PLAINS, COAST, WATER, WATER, WATER]
 ];
-const boardLayout = ISLAND_MAP;
+let boardLayout = ISLAND_MAP;
 class Troop extends GamePiece {
     x;
     y;
@@ -84,29 +86,64 @@ function drawBoard(gamePieces, time) {
     for (let i = 0; i < player2.troops.length; i++)
         gamePieces[15].draw(player2.troops[i].x, player2.troops[i].y, time);
 }
+function generateMap(seed) {
+    console.log(seed);
+    // MAP_LENGTH/(~5-6) is a reasonable value for this
+    let chunks = 6;
+    chunks += Math.random() * .1; // we don't want every Nth tile to be the same every time
+    const map = [];
+    for (let i = 0; i < MAP_HEIGHT; i++) {
+        map.push([]);
+        for (let j = 0; j < MAP_WIDTH; j++) {
+            const noise = perlinNoise(j / MAP_WIDTH * chunks, i / MAP_HEIGHT * chunks, seed);
+            if (noise < .25)
+                map[i].push(OCEAN);
+            else if (noise < .35)
+                map[i].push(WATER);
+            else if (noise < .4)
+                map[i].push(COAST);
+            else if (noise < .5)
+                map[i].push(PLAINS);
+            else if (noise < .6)
+                map[i].push(GRASS);
+            else if (noise < .7)
+                map[i].push(FOREST);
+            else if (noise < .8)
+                map[i].push(MOUNTAIN);
+            else
+                map[i].push(VOLCANO);
+        }
+    }
+    return map;
+}
 try {
     addEventListener("keydown", (event) => {
         const currentPlayer = (playerTurn === 1 ? player1 : player2);
+        const currentTroop = 0; // TODO: add event to update this
+        const targetTroop = currentPlayer.troops[currentTroop];
         // move troop
-        if ((event.key == "1" || event.key == "ArrowLeft") && currentPlayer.troops[0].x > 0)
-            currentPlayer.troops[0].x--;
-        else if ((event.key == "9" || event.key == "ArrowRight") && currentPlayer.troops[0].x < MAP_WIDTH - 1)
-            currentPlayer.troops[0].x++;
-        else if ((event.key == "7" || event.key == "ArrowUp") && currentPlayer.troops[0].y > 0)
-            currentPlayer.troops[0].y--;
-        else if ((event.key == "3" || event.key == "ArrowDown") && currentPlayer.troops[0].y < MAP_HEIGHT - 1)
-            currentPlayer.troops[0].y++;
+        if ((event.key == "1" || event.key == "ArrowLeft") && targetTroop.x > 0)
+            targetTroop.x--;
+        else if ((event.key == "9" || event.key == "ArrowRight") && targetTroop.x < MAP_WIDTH - 1)
+            targetTroop.x++;
+        else if ((event.key == "7" || event.key == "ArrowUp") && targetTroop.y > 0)
+            targetTroop.y--;
+        else if ((event.key == "3" || event.key == "ArrowDown") && targetTroop.y < MAP_HEIGHT - 1)
+            targetTroop.y++;
         // modify tile
         else if (event.key == " ")
-            if (currentPlayer.troops[0].x >= 0 && currentPlayer.troops[0].x < MAP_WIDTH &&
-                currentPlayer.troops[0].y >= 0 && currentPlayer.troops[0].y < MAP_HEIGHT) {
-                tileModifier[currentPlayer.troops[0].y][currentPlayer.troops[0].x] = !tileModifier[currentPlayer.troops[0].y][currentPlayer.troops[0].x];
+            if (targetTroop.x >= 0 && targetTroop.x < MAP_WIDTH &&
+                targetTroop.y >= 0 && targetTroop.y < MAP_HEIGHT) {
+                tileModifier[targetTroop.y][targetTroop.x] = !tileModifier[targetTroop.y][targetTroop.x];
             }
         if (event.key == "Enter") {
             if (playerTurn === 1)
                 playerTurn = 2;
             else
                 playerTurn = 1;
+        }
+        if (event.key == "m") {
+            boardLayout = generateMap(Math.random() * 1e9);
         }
     });
     // populate array
@@ -116,10 +153,7 @@ try {
             tileModifier[i].push(false);
         }
     }
-    // modify a few tiles
-    tileModifier[3][1] = true;
-    tileModifier[7][7] = true;
-    tileModifier[5][5] = true;
+    boardLayout = generateMap(Math.random() * 1e9);
     init(drawBoard);
 }
 catch (e) {

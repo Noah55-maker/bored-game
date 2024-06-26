@@ -1,3 +1,12 @@
+/** TODO
+ * -------
+ * Update import code for assets, currently strange implementation
+ * Use MTL files?
+ * Make the app fullscreen
+ * Resizeable canvas
+ * Panning & Zooming
+ */
+
 import { m4 } from "./m4";
 import { OBJFile } from "./OBJFile";
 
@@ -6,8 +15,8 @@ let matrixUniform: WebGLUniformLocation;
 let lightDirectionUniform: WebGLUniformLocation;
 let diffuseUniform: WebGLUniformLocation;
 
-const MAP_WIDTH = 9;
-const MAP_HEIGHT = 9;
+const MAP_WIDTH = 35;
+const MAP_HEIGHT = 35;
 
 enum TileType {
     GRASS,
@@ -38,6 +47,7 @@ export class GamePiece {
         gl.bindVertexArray(this.vao);
 
         let matrix = m4.orthographic(-.25, .25, -.25, .25, -1, 1);
+        matrix = m4.scaleUniformly(matrix, .25)
 
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
@@ -259,7 +269,7 @@ export async function init(drawBoard: Function) {
 
     // Import models
     for (let i = 0; i < assetNames.length; i++) {
-        console.log(`importing ${assetNames[i]}`);
+        // console.log(`importing ${assetNames[i]}`);
         try {
             const assetObj = await fetch(`/assets/${assetNames[i]}.obj`);
             const objResponse = await assetObj.text();
