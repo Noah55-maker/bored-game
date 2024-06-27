@@ -5,8 +5,8 @@
  * Panning & Zooming
  * Picking game pieces
  */
-import { m4 } from "./m4";
-import { OBJFile } from "./OBJFile";
+import { m4 } from "./m4.js";
+import { OBJFile } from "./OBJFile.js";
 const MAP_LENGTH = 15;
 let gl;
 let matrixUniform;

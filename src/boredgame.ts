@@ -1,7 +1,7 @@
-import { init } from "./renderer";
-import { GamePiece } from "./renderer";
-import { showError } from "./renderer";
-import perlinNoise from "./noise"
+import { init } from "./renderer.js";
+import { GamePiece } from "./renderer.js";
+import { showError } from "./renderer.js";
+import perlinNoise from "./noise.js"
 
 const MAP_LENGTH = 15;
 

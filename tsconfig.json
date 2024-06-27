@@ -12,6 +12,5 @@
         "src/OBJFile.ts",
         "src/renderer.ts",
         "src/noise.ts"
-
     ]
 }
