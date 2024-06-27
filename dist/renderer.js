@@ -55,11 +55,12 @@ export class GamePiece {
         this.numVerticies = numVerticies;
         this.diffuse = diffuse;
     }
-    draw(xPosition, yPosition, time) {
+    draw(xPosition, yPosition, time, fade) {
         gl.bindVertexArray(this.vao);
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
         let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
-        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH); // scale to fill screen
+        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH);
+        // isometric view
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
         // floating in the sky effect
@@ -68,10 +69,17 @@ export class GamePiece {
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
         matrix = m4.translate(matrix, 0.04 * (xPosition - ((MAP_LENGTH - 1) / 2)), 0, 0.04 * (yPosition - ((MAP_LENGTH - 1) / 2)));
         // changing color brightness
-        // const d = [];
-        // for (let i = 0; i < this.diffuse.length; i++)
-        //     d.push(this.diffuse[i] * (0.95+0.05*Math.sin(time)));
-        gl.uniform3fv(diffuseUniform, this.diffuse);
+        if (fade) {
+            const d = [];
+            // fade in and out to white
+            this.diffuse.forEach((diffuseValue) => {
+                d.push(diffuseValue + Math.abs((.9 - diffuseValue) * Math.sin(2 * time)));
+            });
+            gl.uniform3fv(diffuseUniform, d);
+        }
+        else {
+            gl.uniform3fv(diffuseUniform, this.diffuse);
+        }
         gl.uniformMatrix4fv(matrixUniform, false, matrix);
         gl.drawArrays(gl.TRIANGLES, 0, this.numVerticies);
     }

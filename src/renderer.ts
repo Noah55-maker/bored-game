@@ -61,15 +61,15 @@ export class GamePiece {
         // data structure to hold model information
     ) { }
 
-    draw(xPosition: number, yPosition: number, time: number) {
+    draw(xPosition: number, yPosition: number, time: number, fade: boolean) {
         gl.bindVertexArray(this.vao);
 
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
         let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
 
+        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH);
 
-        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH); // scale to fill screen
-
+        // isometric view
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
 
@@ -86,11 +86,20 @@ export class GamePiece {
         );
 
         // changing color brightness
-        // const d = [];
-        // for (let i = 0; i < this.diffuse.length; i++)
-        //     d.push(this.diffuse[i] * (0.95+0.05*Math.sin(time)));
-        
-        gl.uniform3fv(diffuseUniform, this.diffuse);
+        if (fade) {
+            const d: number[] = [];
+
+            // fade in and out to white
+            this.diffuse.forEach((diffuseValue) => {
+                d.push(diffuseValue + Math.abs((.9 - diffuseValue) * Math.sin(2 * time)));
+            });
+            
+            gl.uniform3fv(diffuseUniform, d);
+        }
+        else {
+            gl.uniform3fv(diffuseUniform, this.diffuse);
+        }
+
         gl.uniformMatrix4fv(matrixUniform, false, matrix);
 
         gl.drawArrays(gl.TRIANGLES, 0, this.numVerticies);

@@ -75,33 +75,42 @@ const player1 = new Player([new Troop(0, 0), new Troop(1, 1)]);
 const player2 = new Player([new Troop(MAP_LENGTH-1, MAP_LENGTH-1)]);
 
 let playerTurn = 1;
+let selectedTroop = 0;
 
 function drawBoard(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
             const terrain = boardLayout[y][x];
-            gamePieces[terrain].draw(x, y, time);
+            gamePieces[terrain].draw(x, y, time, false);
 
             if (terrain === VOLCANO)
-                gamePieces[12].draw(x, y, time);
+                gamePieces[12].draw(x, y, time, false);
 
             if (tileModifier[y][x]) {
                 if (terrain === COAST)
-                    gamePieces[11].draw(x, y, time);
+                    gamePieces[11].draw(x, y, time, false);
                 else if (terrain === PLAINS)
-                    gamePieces[14].draw(x, y, time);
+                    gamePieces[14].draw(x, y, time, false);
                 else if (terrain === WATER)
-                    gamePieces[13].draw(x, y, time);
+                    gamePieces[13].draw(x, y, time, false);
             }
         }
     }
 
     // draw soldiers
-    for (let i = 0; i < player1.troops.length; i++)
-        gamePieces[10].draw(player1.troops[i].x, player1.troops[i].y, time);
+    for (let i = 0; i < player1.troops.length; i++) {
+        let fade = false;
+        if (playerTurn === 1 && selectedTroop === i)
+            fade = true;
+        gamePieces[10].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
+    }
 
-    for (let i = 0; i < player2.troops.length; i++)
-        gamePieces[15].draw(player2.troops[i].x, player2.troops[i].y, time);
+    for (let i = 0; i < player2.troops.length; i++) {
+        let fade = false;
+        if (playerTurn === 2 && selectedTroop === i)
+            fade = true;
+        gamePieces[15].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
+    }
 
 }
 
@@ -135,9 +144,7 @@ function generateMap(seed: number) {
 try {
     addEventListener("keydown", (event) => {
         const currentPlayer = (playerTurn === 1 ? player1 : player2);
-        const currentTroop = 0; // TODO: add event to update this
-
-        const targetTroop = currentPlayer.troops[currentTroop];
+        const targetTroop = currentPlayer.troops[selectedTroop];
         
         // move troop
         if ((event.key == "1" || event.key == "ArrowLeft") && targetTroop.x > 0)
@@ -161,6 +168,14 @@ try {
                 playerTurn = 2;
             else
                 playerTurn = 1;
+
+            selectedTroop = 0;
+        }
+
+        if (event.key == "t") {
+            selectedTroop++;
+            if (selectedTroop >= currentPlayer.troops.length)
+                selectedTroop = 0;
         }
 
         if (event.key == "m") {
