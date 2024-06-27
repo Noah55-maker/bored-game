@@ -12,8 +12,7 @@ let gl;
 let matrixUniform;
 let lightDirectionUniform;
 let diffuseUniform;
-const MAP_WIDTH = 35;
-const MAP_HEIGHT = 35;
+const MAP_LENGTH = 35;
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -43,15 +42,15 @@ export class GamePiece {
     }
     draw(xPosition, yPosition, time) {
         gl.bindVertexArray(this.vao);
-        let matrix = m4.orthographic(-.25, .25, -.25, .25, -1, 1);
-        matrix = m4.scaleUniformly(matrix, .25);
+        let matrix = m4.orthographic(-1, 1, -1, 1, -1, 1);
+        matrix = m4.scaleUniformly(matrix, 36 / MAP_LENGTH); // scale to fill screen
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
         // floating in the sky effect
         matrix = m4.translate(matrix, 0, 0.005 * Math.sin(time), 0);
         // earthquake effect 
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
-        matrix = m4.translate(matrix, 0.04 * (xPosition - ((MAP_WIDTH - 1) / 2)), 0, 0.04 * (yPosition - ((MAP_HEIGHT - 1) / 2)));
+        matrix = m4.translate(matrix, 0.04 * (xPosition - ((MAP_LENGTH - 1) / 2)), 0, 0.04 * (yPosition - ((MAP_LENGTH - 1) / 2)));
         // changing color brightness
         // const d = [];
         // for (let i = 0; i < this.diffuse.length; i++)

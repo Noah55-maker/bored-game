@@ -2,8 +2,7 @@ import { init } from "./renderer";
 import { GamePiece } from "./renderer";
 import { showError } from "./renderer";
 import perlinNoise from "./noise";
-const MAP_WIDTH = 35;
-const MAP_HEIGHT = 35;
+const MAP_LENGTH = 35;
 const tileModifier = [];
 // change this to be `new Array()`
 var TileType;
@@ -61,11 +60,11 @@ class Player {
     }
 }
 const player1 = new Player([new Troop(0, 0), new Troop(1, 1)]);
-const player2 = new Player([new Troop(MAP_WIDTH - 1, MAP_HEIGHT - 1)]);
+const player2 = new Player([new Troop(MAP_LENGTH - 1, MAP_LENGTH - 1)]);
 let playerTurn = 1;
 function drawBoard(gamePieces, time) {
-    for (let y = 0; y < MAP_HEIGHT; y++) {
-        for (let x = 0; x < MAP_WIDTH; x++) {
+    for (let y = 0; y < MAP_LENGTH; y++) {
+        for (let x = 0; x < MAP_LENGTH; x++) {
             const terrain = boardLayout[y][x];
             gamePieces[terrain].draw(x, y, time);
             if (terrain === VOLCANO)
@@ -88,14 +87,14 @@ function drawBoard(gamePieces, time) {
 }
 function generateMap(seed) {
     console.log(seed);
-    // MAP_LENGTH/(~5-6) is a reasonable value for this
-    let chunks = 6;
+    // how meany (tiles per noise value) you want: ~5-6 is a reasonable value
+    let chunks = 5;
     chunks += Math.random() * .1; // we don't want every Nth tile to be the same every time
     const map = [];
-    for (let i = 0; i < MAP_HEIGHT; i++) {
+    for (let i = 0; i < MAP_LENGTH; i++) {
         map.push([]);
-        for (let j = 0; j < MAP_WIDTH; j++) {
-            const noise = perlinNoise(j / MAP_WIDTH * chunks, i / MAP_HEIGHT * chunks, seed);
+        for (let j = 0; j < MAP_LENGTH; j++) {
+            const noise = perlinNoise(j / chunks, i / chunks, seed);
             if (noise < .25)
                 map[i].push(OCEAN);
             else if (noise < .35)
@@ -124,16 +123,16 @@ try {
         // move troop
         if ((event.key == "1" || event.key == "ArrowLeft") && targetTroop.x > 0)
             targetTroop.x--;
-        else if ((event.key == "9" || event.key == "ArrowRight") && targetTroop.x < MAP_WIDTH - 1)
+        else if ((event.key == "9" || event.key == "ArrowRight") && targetTroop.x < MAP_LENGTH - 1)
             targetTroop.x++;
         else if ((event.key == "7" || event.key == "ArrowUp") && targetTroop.y > 0)
             targetTroop.y--;
-        else if ((event.key == "3" || event.key == "ArrowDown") && targetTroop.y < MAP_HEIGHT - 1)
+        else if ((event.key == "3" || event.key == "ArrowDown") && targetTroop.y < MAP_LENGTH - 1)
             targetTroop.y++;
         // modify tile
         else if (event.key == " ")
-            if (targetTroop.x >= 0 && targetTroop.x < MAP_WIDTH &&
-                targetTroop.y >= 0 && targetTroop.y < MAP_HEIGHT) {
+            if (targetTroop.x >= 0 && targetTroop.x < MAP_LENGTH &&
+                targetTroop.y >= 0 && targetTroop.y < MAP_LENGTH) {
                 tileModifier[targetTroop.y][targetTroop.x] = !tileModifier[targetTroop.y][targetTroop.x];
             }
         if (event.key == "Enter") {
@@ -147,9 +146,9 @@ try {
         }
     });
     // populate array
-    for (let i = 0; i < MAP_HEIGHT; i++) {
+    for (let i = 0; i < MAP_LENGTH; i++) {
         tileModifier.push([]);
-        for (let j = 0; j < MAP_WIDTH; j++) {
+        for (let j = 0; j < MAP_LENGTH; j++) {
             tileModifier[i].push(false);
         }
     }

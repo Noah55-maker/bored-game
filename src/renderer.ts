@@ -15,8 +15,7 @@ let matrixUniform: WebGLUniformLocation;
 let lightDirectionUniform: WebGLUniformLocation;
 let diffuseUniform: WebGLUniformLocation;
 
-const MAP_WIDTH = 35;
-const MAP_HEIGHT = 35;
+const MAP_LENGTH = 35;
 
 enum TileType {
     GRASS,
@@ -46,8 +45,8 @@ export class GamePiece {
     draw(xPosition: number, yPosition: number, time: number) {
         gl.bindVertexArray(this.vao);
 
-        let matrix = m4.orthographic(-.25, .25, -.25, .25, -1, 1);
-        matrix = m4.scaleUniformly(matrix, .25)
+        let matrix = m4.orthographic(-1, 1, -1, 1, -1, 1);
+        matrix = m4.scaleUniformly(matrix, 36 / MAP_LENGTH); // scale to fill screen
 
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
@@ -59,9 +58,9 @@ export class GamePiece {
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
 
         matrix = m4.translate(matrix, 
-            0.04*(xPosition - ((MAP_WIDTH - 1) / 2)), 
+            0.04*(xPosition - ((MAP_LENGTH - 1) / 2)), 
             0, 
-            0.04*(yPosition - ((MAP_HEIGHT - 1) / 2))
+            0.04*(yPosition - ((MAP_LENGTH - 1) / 2))
         );
 
         // changing color brightness
