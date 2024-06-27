@@ -10,12 +10,16 @@
         head,
         body {
             margin: 0;
-            padding: 25px;
-            background-color: #2a2a2a;
+            /* padding: 25px; */
+            /* background-color: #2a2a2a; */
+            height: 100%;
         }
 
         #canvas {
             background-color: #da6052;
+            height: 100%;
+            width: 100%;
+            display: block;
         }
 
         /** Error box for faster debugging :) */
@@ -36,10 +40,12 @@
 </head>
 
 <body>
-    <canvas id="canvas" width="800" height="800"></canvas>
-    <div id="error-box">
+    <!-- <canvas id="canvas" width="800" height="800"></canvas> -->
+    <canvas id="canvas"></canvas>
+
+    <!-- <div id="error-box">
         <span class="error-box-title">Error messages, if any, go here.</span>
-    </div>
+    </div> -->
     <script type="module" src="boredgame.js"></script>
 </body>
 

@@ -2,17 +2,17 @@
  * -------
  * Update import code for assets, currently strange implementation
  * Use MTL files?
- * Make the app fullscreen
- * Resizeable canvas
  * Panning & Zooming
  */
 import { m4 } from "./m4";
 import { OBJFile } from "./OBJFile";
+const MAP_LENGTH = 35;
 let gl;
 let matrixUniform;
 let lightDirectionUniform;
 let diffuseUniform;
-const MAP_LENGTH = 35;
+let canvas;
+let aspectRatio;
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -27,6 +27,20 @@ var TileType;
     TileType[TileType["SNOW"] = 9] = "SNOW";
 })(TileType || (TileType = {}));
 const assetNames = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'port', 'lava', 'ship', 'castle', 'soldierred'];
+function resizeCanvasToDisplaySize(canvas) {
+    // Lookup the size the browser is displaying the canvas in CSS pixels.
+    const displayWidth = canvas.clientWidth;
+    const displayHeight = canvas.clientHeight;
+    // Check if the canvas is not the same size.
+    const needResize = canvas.width !== displayWidth ||
+        canvas.height !== displayHeight;
+    if (needResize) {
+        // Make the canvas the same size
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+    }
+    return needResize;
+}
 export class GamePiece {
     pieceType;
     vao;
@@ -42,8 +56,8 @@ export class GamePiece {
     }
     draw(xPosition, yPosition, time) {
         gl.bindVertexArray(this.vao);
-        let matrix = m4.orthographic(-1, 1, -1, 1, -1, 1);
-        matrix = m4.scaleUniformly(matrix, 36 / MAP_LENGTH); // scale to fill screen
+        let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
+        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH); // scale to fill screen
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
         // floating in the sky effect
@@ -159,11 +173,15 @@ function normalize(arr) {
         normalized.push(arr[i] / magnitude);
     return normalized;
 }
-export async function init(drawBoard) {
+function getCanvas(document) {
     const canvas = document.getElementById('canvas');
     if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
         throw new Error('Failed to get gl canvas reference');
     }
+    return canvas;
+}
+export async function init(drawBoard) {
+    canvas = getCanvas(document);
     gl = getContext(canvas);
     // compile vertex shader
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -275,10 +293,14 @@ export async function init(drawBoard) {
     }
     async function render(time) {
         time *= 0.001; // convert to seconds
+        resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        if (canvas === null)
+            return;
+        aspectRatio = canvas.clientWidth / canvas.clientHeight;
         gl.enable(gl.DEPTH_TEST);
         // gl.enable(gl.CULL_FACE);
-        gl.clearColor(.53, .81, .92, 1.0);
+        gl.clearColor(.53, .81, .92, 1.0); // sky blue background
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.useProgram(program);
         gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));

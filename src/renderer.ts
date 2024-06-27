@@ -2,20 +2,21 @@
  * -------
  * Update import code for assets, currently strange implementation
  * Use MTL files?
- * Make the app fullscreen
- * Resizeable canvas
  * Panning & Zooming
  */
 
 import { m4 } from "./m4";
 import { OBJFile } from "./OBJFile";
 
+const MAP_LENGTH = 35;
+
 let gl: WebGL2RenderingContext;
 let matrixUniform: WebGLUniformLocation;
 let lightDirectionUniform: WebGLUniformLocation;
 let diffuseUniform: WebGLUniformLocation;
 
-const MAP_LENGTH = 35;
+let canvas: HTMLCanvasElement;
+let aspectRatio: number;
 
 enum TileType {
     GRASS,
@@ -32,6 +33,23 @@ enum TileType {
 
 const assetNames = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'port', 'lava', 'ship', 'castle', 'soldierred'];
 
+function resizeCanvasToDisplaySize(canvas: any) {
+    // Lookup the size the browser is displaying the canvas in CSS pixels.
+    const displayWidth  = canvas.clientWidth;
+    const displayHeight = canvas.clientHeight;
+
+    // Check if the canvas is not the same size.
+    const needResize = canvas.width  !== displayWidth ||
+                        canvas.height !== displayHeight;
+
+    if (needResize) {
+        // Make the canvas the same size
+        canvas.width  = displayWidth;
+        canvas.height = displayHeight;
+    }
+
+    return needResize;
+}
 
 export class GamePiece {
     constructor(
@@ -45,8 +63,9 @@ export class GamePiece {
     draw(xPosition: number, yPosition: number, time: number) {
         gl.bindVertexArray(this.vao);
 
-        let matrix = m4.orthographic(-1, 1, -1, 1, -1, 1);
-        matrix = m4.scaleUniformly(matrix, 36 / MAP_LENGTH); // scale to fill screen
+        let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
+
+        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH); // scale to fill screen
 
         matrix = m4.xRotate(matrix, Math.PI / 6);
         matrix = m4.yRotate(matrix, Math.PI / 4);
@@ -198,11 +217,16 @@ function normalize(arr: number[]) {
     return normalized;
 }
 
-export async function init(drawBoard: Function) {
+function getCanvas(document: any) {
     const canvas = document.getElementById('canvas');
     if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
         throw new Error('Failed to get gl canvas reference');
     }
+    return canvas;
+}
+
+export async function init(drawBoard: Function) {
+    canvas = getCanvas(document);
 
     gl = getContext(canvas);
 
@@ -342,11 +366,18 @@ export async function init(drawBoard: Function) {
     async function render(time: number) {
         time *= 0.001; // convert to seconds
 
+        resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+        if (canvas === null)
+            return;
+        aspectRatio = canvas.clientWidth / canvas.clientHeight;
+
+
         gl.enable(gl.DEPTH_TEST);
         // gl.enable(gl.CULL_FACE);
 
-        gl.clearColor(.53, .81, .92, 1.0);
+        gl.clearColor(.53, .81, .92, 1.0); // sky blue background
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
         gl.useProgram(program);
