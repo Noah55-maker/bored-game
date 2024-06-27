@@ -3,10 +3,11 @@
  * Update import code for assets, currently strange implementation
  * Use MTL files?
  * Panning & Zooming
+ * Picking game pieces
  */
 import { m4 } from "./m4";
 import { OBJFile } from "./OBJFile";
-const MAP_LENGTH = 35;
+const MAP_LENGTH = 15;
 let gl;
 let matrixUniform;
 let lightDirectionUniform;
@@ -56,6 +57,7 @@ export class GamePiece {
     }
     draw(xPosition, yPosition, time) {
         gl.bindVertexArray(this.vao);
+        // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
         let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
         matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH); // scale to fill screen
         matrix = m4.xRotate(matrix, Math.PI / 6);
@@ -239,13 +241,11 @@ export async function init(drawBoard) {
     const gamePieces = [];
     // Import models
     for (let i = 0; i < assetNames.length; i++) {
-        // console.log(`importing ${assetNames[i]}`);
         try {
             const assetObj = await fetch(`/assets/${assetNames[i]}.obj`);
             const objResponse = await assetObj.text();
             const obj = new OBJFile(objResponse, assetNames[i]);
             const objContents = obj.parse();
-            // console.log(objContents);
             // const assetMtl = await fetch(`/assets/${objContents.materialLibraries}`);
             // const mtlResponse = await assetMtl.text();
             const assetModels = objContents.models;
@@ -299,13 +299,13 @@ export async function init(drawBoard) {
             return;
         aspectRatio = canvas.clientWidth / canvas.clientHeight;
         gl.enable(gl.DEPTH_TEST);
-        // gl.enable(gl.CULL_FACE);
-        gl.clearColor(.53, .81, .92, 1.0); // sky blue background
+        // sky blue background
+        gl.clearColor(.53, .81, .92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.useProgram(program);
         gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));
         drawBoard(gamePieces, time);
-        await new Promise((resolve) => setTimeout(resolve, 25));
+        await new Promise((resolve) => setTimeout(resolve, 30));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

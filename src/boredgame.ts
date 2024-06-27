@@ -3,10 +3,9 @@ import { GamePiece } from "./renderer";
 import { showError } from "./renderer";
 import perlinNoise from "./noise"
 
-const MAP_LENGTH = 35;
+const MAP_LENGTH = 15;
 
 const tileModifier: boolean[][] = [];
-// change this to be `new Array()`
 
 enum TileType {
     GRASS,
@@ -110,7 +109,7 @@ function generateMap(seed: number) {
 
     console.log(seed);
     
-    // how meany (tiles per noise value) you want: ~5-6 is a reasonable value
+    // how many (tiles per noise value) you want: ~5-6 is a reasonable value
     let chunks = 5;
     chunks += Math.random()*.1; // we don't want every Nth tile to be the same every time
 

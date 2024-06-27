@@ -2,9 +2,8 @@ import { init } from "./renderer";
 import { GamePiece } from "./renderer";
 import { showError } from "./renderer";
 import perlinNoise from "./noise";
-const MAP_LENGTH = 35;
+const MAP_LENGTH = 15;
 const tileModifier = [];
-// change this to be `new Array()`
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -87,7 +86,7 @@ function drawBoard(gamePieces, time) {
 }
 function generateMap(seed) {
     console.log(seed);
-    // how meany (tiles per noise value) you want: ~5-6 is a reasonable value
+    // how many (tiles per noise value) you want: ~5-6 is a reasonable value
     let chunks = 5;
     chunks += Math.random() * .1; // we don't want every Nth tile to be the same every time
     const map = [];
