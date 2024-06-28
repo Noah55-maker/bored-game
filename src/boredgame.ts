@@ -72,7 +72,7 @@ class Player {
 }
 
 const player1 = new Player([new Troop(0, 0), new Troop(1, 1)]);
-const player2 = new Player([new Troop(MAP_LENGTH-1, MAP_LENGTH-1)]);
+const player2 = new Player([new Troop(MAP_LENGTH-1, MAP_LENGTH-1), new Troop(MAP_LENGTH-2, MAP_LENGTH-2)]);
 
 let playerTurn = 1;
 let selectedTroop = 0;
@@ -180,6 +180,13 @@ try {
 
         if (event.key == "m") {
             boardLayout = generateMap(Math.random()*1e9);
+
+            // clear any modified tiles
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    tileModifier[i][j] = false;
+                }
+            }
         } 
     });
 
