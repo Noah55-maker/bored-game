@@ -4,6 +4,7 @@ import { showError } from "./renderer.js";
 import perlinNoise from "./noise.js"
 
 export let MAP_LENGTH = 19;
+let CHUNK_SIZE = 5;
 
 const tileModifier: boolean[][] = [];
 let seed: number;
@@ -127,7 +128,7 @@ function generateMap(seed: number) {
     console.log(seed);
     
     // how many (tiles per noise value) you want: ~5-6 is a reasonable value
-    let chunkSize = 5;
+    let chunkSize = CHUNK_SIZE;
     chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
 
     const map: TileType[][] = [];
@@ -273,6 +274,32 @@ try {
         if (event.key == "2") {
             MAP_LENGTH++;
             tileModifier.push([]);
+            boardLayout = generateMap(seed);
+
+            // clear any modified tiles
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    tileModifier[i][j] = false;
+                }
+            }
+        }
+
+        if (event.key == "9") {
+            CHUNK_SIZE--;
+            if (CHUNK_SIZE == 0)
+                CHUNK_SIZE = 1;
+            boardLayout = generateMap(seed);
+
+            // clear any modified tiles
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    tileModifier[i][j] = false;
+                }
+            }
+        }
+
+        if (event.key == "0") {
+            CHUNK_SIZE++;
             boardLayout = generateMap(seed);
 
             // clear any modified tiles
