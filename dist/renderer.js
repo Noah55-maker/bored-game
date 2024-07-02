@@ -7,7 +7,8 @@
  */
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
-const MAP_LENGTH = 15;
+import { MAP_LENGTH } from "./boredgame.js";
+// const MAP_LENGTH = 15;
 let gl;
 let matrixUniform;
 let lightDirectionUniform;

@@ -3,9 +3,10 @@ import { GamePiece } from "./renderer.js";
 import { showError } from "./renderer.js";
 import perlinNoise from "./noise.js"
 
-const MAP_LENGTH = 15;
+export let MAP_LENGTH = 19;
 
 const tileModifier: boolean[][] = [];
+let seed: number;
 
 enum TileType {
     GRASS,
@@ -126,14 +127,14 @@ function generateMap(seed: number) {
     console.log(seed);
     
     // how many (tiles per noise value) you want: ~5-6 is a reasonable value
-    let chunks = 5;
-    chunks += Math.random()*.1; // we don't want every Nth tile to be the same every time
+    let chunkSize = 5;
+    chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
 
     const map: TileType[][] = [];
     for (let i = 0; i < MAP_LENGTH; i++) {
         map.push([]);
         for (let j = 0; j < MAP_LENGTH; j++) {
-            const noise = perlinNoise(j / chunks, i / chunks, seed);
+            const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
             if (noise < .25) map[i].push(OCEAN);
             else if (noise < .35) map[i].push(WATER);
             else if (noise < .4) map[i].push(COAST);
@@ -164,8 +165,6 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number) {
         return false;
     }
 
-
-
     if (newTile == WATER || newTile == OCEAN) {
         if ((currentTile == COAST && tileModifier[troop.y][troop.x]) || troop.isOnShip)
             return true;
@@ -173,10 +172,10 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number) {
             return false;
     }
 
-
     return true;
 }
 
+// You currently cannot remount a ship without a port, I'm not a fan of this behavior
 function moveTroop(troop: Troop, deltaX: number, deltaY: number) {
     if (!troopCanMove(troop, deltaX, deltaY)) {
         return;
@@ -248,7 +247,8 @@ try {
         }
 
         if (event.key == "m") {
-            boardLayout = generateMap(Math.random()*1e9);
+            seed = Math.random() * 1e9;
+            boardLayout = generateMap(seed);
 
             // clear any modified tiles
             for (let i = 0; i < MAP_LENGTH; i++) {
@@ -257,6 +257,31 @@ try {
                 }
             }
         } 
+
+        if (event.key == "1") {
+            MAP_LENGTH--;
+            boardLayout = generateMap(seed);
+
+            // clear any modified tiles
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    tileModifier[i][j] = false;
+                }
+            }
+        }
+
+        if (event.key == "2") {
+            MAP_LENGTH++;
+            tileModifier.push([]);
+            boardLayout = generateMap(seed);
+
+            // clear any modified tiles
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    tileModifier[i][j] = false;
+                }
+            }
+        }
     });
 
     // populate array
@@ -267,7 +292,8 @@ try {
         }
     }
 
-    boardLayout = generateMap(Math.random()*1e9);
+    seed = Math.random() * 1e9;
+    boardLayout = generateMap(seed);
 
     init(drawBoard);
 } catch (e) {

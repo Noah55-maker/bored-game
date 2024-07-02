@@ -8,8 +8,9 @@
 
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
+import { MAP_LENGTH } from "./boredgame.js";
 
-const MAP_LENGTH = 15;
+// const MAP_LENGTH = 15;
 
 let gl: WebGL2RenderingContext;
 let matrixUniform: WebGLUniformLocation;
