@@ -89,9 +89,9 @@ export class GamePiece {
         if (fade) {
             const d: number[] = [];
 
-            // fade in and out to white
+            // fade brightness
             this.diffuse.forEach((diffuseValue) => {
-                d.push(diffuseValue + Math.abs((.9 - diffuseValue) * Math.sin(2 * time)));
+                d.push(diffuseValue + Math.abs(.3 * diffuseValue * Math.sin(2 * time)));
             });
             
             gl.uniform3fv(diffuseUniform, d);
