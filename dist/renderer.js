@@ -73,7 +73,7 @@ export class GamePiece {
             const d = [];
             // fade brightness
             this.diffuse.forEach((diffuseValue) => {
-                d.push(diffuseValue + Math.abs(.3 * diffuseValue * Math.sin(2 * time)));
+                d.push(diffuseValue * (.95 + Math.abs(.3 * Math.sin(2 * time))));
             });
             gl.uniform3fv(diffuseUniform, d);
         }
