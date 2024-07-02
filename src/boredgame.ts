@@ -1,3 +1,10 @@
+/** TODO
+ * -------
+ * Maybe: Movement animations
+ * Orientate ship
+ * Coast tiles should be exclusively adjacent to land tiles
+ */
+
 import { init } from "./renderer.js";
 import { GamePiece } from "./renderer.js";
 import { showError } from "./renderer.js";
@@ -20,9 +27,18 @@ enum TileType {
     OCEAN,
     SWAMP,
     SNOW,
+    SOLDIER_BLUE,
+    SOLDIER_RED,
+    LAVA,
+    PORT,
+    SHIP,
+    CASTLE,
 }
 
-const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW } = TileType;
+const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE } = TileType;
+
+// should be the same order as TileType
+export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle'];
 
 const ISLAND_MAP: TileType[][] = [
     [WATER, WATER, COAST, WATER, WATER, COAST, WATER, SNOW, SNOW],
@@ -50,13 +66,12 @@ const OTHER_MAP: TileType[][] = [
 
 let boardLayout = ISLAND_MAP;
 
-class Troop extends GamePiece {
+class Troop {
     public x: number;
     public y: number;
     public isOnShip: boolean;
 
     constructor(positionX: number, positionY: number) {
-        super(0, [], 0, []);
         this.x = positionX;
         this.y = positionY;
 
@@ -64,7 +79,24 @@ class Troop extends GamePiece {
     }
 }
 
-class Tile extends GamePiece {
+class Tile {
+    public type: TileType;
+    public modified: boolean;
+
+    private x: number;
+    private y: number;
+
+    constructor(type: TileType, positionX: number, positionY: number) {
+        this.type = type;
+        this.x = positionX;
+        this.y = positionY;
+
+        this.modified = false;
+    }
+
+    draw() {
+        
+    }
 
 }
 
@@ -98,15 +130,15 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
             gamePieces[terrain].draw(x, y, time, fade);
 
             if (terrain === VOLCANO)
-                gamePieces[12].draw(x, y, time, fade);
+                gamePieces[LAVA].draw(x, y, time, fade);
 
             if (tileModifier[y][x]) {
                 if (terrain === COAST)
-                    gamePieces[11].draw(x, y, time, fade);
+                    gamePieces[PORT].draw(x, y, time, fade);
                 else if (terrain === PLAINS)
-                    gamePieces[14].draw(x, y, time, fade);
+                    gamePieces[CASTLE].draw(x, y, time, fade);
                 else if (terrain === WATER || terrain === OCEAN)
-                    gamePieces[13].draw(x, y, time, fade);
+                    gamePieces[SHIP].draw(x, y, time, fade);
             }
         }
     }
@@ -114,12 +146,12 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
     // draw player troops
     for (let i = 0; i < player1.troops.length; i++) {
         const fade = (playerTurn === 1 && focusedTroopIndex === i);
-        gamePieces[10].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
+        gamePieces[SOLDIER_BLUE].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
     }
 
     for (let i = 0; i < player2.troops.length; i++) {
         const fade = (playerTurn === 2 && focusedTroopIndex === i);
-        gamePieces[15].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
+        gamePieces[SOLDIER_RED].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
     }
 
 }
@@ -127,7 +159,7 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
 function generateMap(seed: number) {
     console.log(seed);
     
-    // how many (tiles per noise value) you want: ~5-6 is a reasonable value
+    // how many (tiles per noise value) you want: ~5 is a reasonable value
     let chunkSize = CHUNK_SIZE;
     chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
 

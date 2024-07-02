@@ -7,28 +7,13 @@
  */
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
-import { MAP_LENGTH } from "./boredgame.js";
-// const MAP_LENGTH = 15;
+import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 let gl;
 let matrixUniform;
 let lightDirectionUniform;
 let diffuseUniform;
 let canvas;
 let aspectRatio;
-var TileType;
-(function (TileType) {
-    TileType[TileType["GRASS"] = 0] = "GRASS";
-    TileType[TileType["FOREST"] = 1] = "FOREST";
-    TileType[TileType["PLAINS"] = 2] = "PLAINS";
-    TileType[TileType["MOUNTAIN"] = 3] = "MOUNTAIN";
-    TileType[TileType["VOLCANO"] = 4] = "VOLCANO";
-    TileType[TileType["WATER"] = 5] = "WATER";
-    TileType[TileType["COAST"] = 6] = "COAST";
-    TileType[TileType["OCEAN"] = 7] = "OCEAN";
-    TileType[TileType["SWAMP"] = 8] = "SWAMP";
-    TileType[TileType["SNOW"] = 9] = "SNOW";
-})(TileType || (TileType = {}));
-const assetNames = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'port', 'lava', 'ship', 'castle', 'soldierred'];
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
     const displayWidth = canvas.clientWidth;
@@ -44,14 +29,10 @@ function resizeCanvasToDisplaySize(canvas) {
     return needResize;
 }
 export class GamePiece {
-    pieceType;
     vao;
     numVerticies;
     diffuse;
-    constructor(pieceType, vao, numVerticies, diffuse
-    // data structure to hold model information
-    ) {
-        this.pieceType = pieceType;
+    constructor(vao, numVerticies, diffuse) {
         this.vao = vao;
         this.numVerticies = numVerticies;
         this.diffuse = diffuse;
@@ -249,18 +230,18 @@ export async function init(drawBoard) {
     diffuseUniform = getUniformLocation(program, 'u_diffuse');
     const gamePieces = [];
     // Import models
-    for (let i = 0; i < assetNames.length; i++) {
+    for (let i = 0; i < ASSET_NAMES.length; i++) {
         try {
-            const assetObj = await fetch(`/assets/${assetNames[i]}.obj`);
+            const assetObj = await fetch(`/assets/${ASSET_NAMES[i]}.obj`);
             const objResponse = await assetObj.text();
-            const obj = new OBJFile(objResponse, assetNames[i]);
+            const obj = new OBJFile(objResponse, ASSET_NAMES[i]);
             const objContents = obj.parse();
             // const assetMtl = await fetch(`/assets/${objContents.materialLibraries}`);
             // const mtlResponse = await assetMtl.text();
             const assetModels = objContents.models;
             const assetVertices = assetModels[0].vertices;
             const assetNormals = assetModels[0].vertexNormals;
-            const assetTextures = assetModels[0].textureCoords;
+            // const assetTextures = assetModels[0].textureCoords;
             const interleavedData = [];
             for (let j = 0; j < assetModels.length; j++) {
                 const assetFaces = assetModels[j].faces;
@@ -280,7 +261,7 @@ export async function init(drawBoard) {
             }
             const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPositionAttributeLocation, vertexNormalAttributeLocation);
             if (assetVao === null) {
-                showError(`assetVao ${assetNames[i]} is null`);
+                showError(`assetVao ${ASSET_NAMES[i]} is null`);
                 return;
             }
             // hacky implementation that works only for these models??
@@ -292,11 +273,11 @@ export async function init(drawBoard) {
                 parseFloat(diffuseStrings[1]),
                 parseFloat(diffuseStrings[2])
             ];
-            const gp = new GamePiece(i, assetVao, interleavedData.length / 6, diffuse);
+            const gp = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
             gamePieces.push(gp);
         }
         catch (e) {
-            showError(`Failed to import model ${assetNames[i]}: ${e}`);
+            showError(`Failed to import model ${ASSET_NAMES[i]}: ${e}`);
             return;
         }
     }

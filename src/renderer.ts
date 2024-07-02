@@ -8,9 +8,7 @@
 
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
-import { MAP_LENGTH } from "./boredgame.js";
-
-// const MAP_LENGTH = 15;
+import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 
 let gl: WebGL2RenderingContext;
 let matrixUniform: WebGLUniformLocation;
@@ -19,21 +17,6 @@ let diffuseUniform: WebGLUniformLocation;
 
 let canvas: HTMLCanvasElement;
 let aspectRatio: number;
-
-enum TileType {
-    GRASS,
-    FOREST,
-    PLAINS,
-    MOUNTAIN,
-    VOLCANO,
-    WATER,
-    COAST,
-    OCEAN,
-    SWAMP,
-    SNOW,
-}
-
-const assetNames = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'port', 'lava', 'ship', 'castle', 'soldierred'];
 
 function resizeCanvasToDisplaySize(canvas: any) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -55,11 +38,9 @@ function resizeCanvasToDisplaySize(canvas: any) {
 
 export class GamePiece {
     constructor(
-        private pieceType: TileType,
         private vao: WebGLVertexArrayObject,
         private numVerticies: number,
         private diffuse: number[]
-        // data structure to hold model information
     ) { }
 
     draw(xPosition: number, yPosition: number, time: number, fade: boolean) {
@@ -305,11 +286,11 @@ export async function init(drawBoard: Function) {
     const gamePieces: GamePiece[] = [];
 
     // Import models
-    for (let i = 0; i < assetNames.length; i++) {
+    for (let i = 0; i < ASSET_NAMES.length; i++) {
         try {
-            const assetObj = await fetch(`/assets/${assetNames[i]}.obj`);
+            const assetObj = await fetch(`/assets/${ASSET_NAMES[i]}.obj`);
             const objResponse = await assetObj.text();
-            const obj = new OBJFile(objResponse, assetNames[i]);
+            const obj = new OBJFile(objResponse, ASSET_NAMES[i]);
             const objContents = obj.parse();
 
             // const assetMtl = await fetch(`/assets/${objContents.materialLibraries}`);
@@ -319,7 +300,7 @@ export async function init(drawBoard: Function) {
 
             const assetVertices = assetModels[0].vertices;
             const assetNormals = assetModels[0].vertexNormals;
-            const assetTextures = assetModels[0].textureCoords;
+            // const assetTextures = assetModels[0].textureCoords;
 
             const interleavedData: number[] = [];
 
@@ -352,7 +333,7 @@ export async function init(drawBoard: Function) {
 
             const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPositionAttributeLocation, vertexNormalAttributeLocation);
             if (assetVao === null) {
-                showError(`assetVao ${assetNames[i]} is null`);
+                showError(`assetVao ${ASSET_NAMES[i]} is null`);
                 return;
             }
 
@@ -366,10 +347,10 @@ export async function init(drawBoard: Function) {
                 parseFloat(diffuseStrings[2])
             ];
 
-            const gp = new GamePiece(i, assetVao, interleavedData.length / 6, diffuse);
+            const gp = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
             gamePieces.push(gp);
         } catch (e) {
-            showError(`Failed to import model ${assetNames[i]}: ${e}`);
+            showError(`Failed to import model ${ASSET_NAMES[i]}: ${e}`);
             return;
         }
     }

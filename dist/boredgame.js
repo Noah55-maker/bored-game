@@ -1,5 +1,10 @@
+/** TODO
+ * -------
+ * Maybe: Movement animations
+ * Orientate ship
+ * Coast tiles should be exclusively adjacent to land tiles
+ */
 import { init } from "./renderer.js";
-import { GamePiece } from "./renderer.js";
 import { showError } from "./renderer.js";
 import perlinNoise from "./noise.js";
 export let MAP_LENGTH = 19;
@@ -18,8 +23,16 @@ var TileType;
     TileType[TileType["OCEAN"] = 7] = "OCEAN";
     TileType[TileType["SWAMP"] = 8] = "SWAMP";
     TileType[TileType["SNOW"] = 9] = "SNOW";
+    TileType[TileType["SOLDIER_BLUE"] = 10] = "SOLDIER_BLUE";
+    TileType[TileType["SOLDIER_RED"] = 11] = "SOLDIER_RED";
+    TileType[TileType["LAVA"] = 12] = "LAVA";
+    TileType[TileType["PORT"] = 13] = "PORT";
+    TileType[TileType["SHIP"] = 14] = "SHIP";
+    TileType[TileType["CASTLE"] = 15] = "CASTLE";
 })(TileType || (TileType = {}));
-const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW } = TileType;
+const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE } = TileType;
+// should be the same order as TileType
+export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle'];
 const ISLAND_MAP = [
     [WATER, WATER, COAST, WATER, WATER, COAST, WATER, SNOW, SNOW],
     [WATER, WATER, PLAINS, FOREST, FOREST, PLAINS, WATER, WATER, SNOW],
@@ -43,18 +56,29 @@ const OTHER_MAP = [
     [MOUNTAIN, MOUNTAIN, MOUNTAIN, MOUNTAIN, PLAINS, COAST, WATER, WATER, WATER]
 ];
 let boardLayout = ISLAND_MAP;
-class Troop extends GamePiece {
+class Troop {
     x;
     y;
     isOnShip;
     constructor(positionX, positionY) {
-        super(0, [], 0, []);
         this.x = positionX;
         this.y = positionY;
         this.isOnShip = false;
     }
 }
-class Tile extends GamePiece {
+class Tile {
+    type;
+    modified;
+    x;
+    y;
+    constructor(type, positionX, positionY) {
+        this.type = type;
+        this.x = positionX;
+        this.y = positionY;
+        this.modified = false;
+    }
+    draw() {
+    }
 }
 class Player {
     troops;
@@ -77,30 +101,30 @@ function drawBoard(gamePieces, time) {
             const terrain = boardLayout[y][x];
             gamePieces[terrain].draw(x, y, time, fade);
             if (terrain === VOLCANO)
-                gamePieces[12].draw(x, y, time, fade);
+                gamePieces[LAVA].draw(x, y, time, fade);
             if (tileModifier[y][x]) {
                 if (terrain === COAST)
-                    gamePieces[11].draw(x, y, time, fade);
+                    gamePieces[PORT].draw(x, y, time, fade);
                 else if (terrain === PLAINS)
-                    gamePieces[14].draw(x, y, time, fade);
+                    gamePieces[CASTLE].draw(x, y, time, fade);
                 else if (terrain === WATER || terrain === OCEAN)
-                    gamePieces[13].draw(x, y, time, fade);
+                    gamePieces[SHIP].draw(x, y, time, fade);
             }
         }
     }
     // draw player troops
     for (let i = 0; i < player1.troops.length; i++) {
         const fade = (playerTurn === 1 && focusedTroopIndex === i);
-        gamePieces[10].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
+        gamePieces[SOLDIER_BLUE].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
     }
     for (let i = 0; i < player2.troops.length; i++) {
         const fade = (playerTurn === 2 && focusedTroopIndex === i);
-        gamePieces[15].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
+        gamePieces[SOLDIER_RED].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
     }
 }
 function generateMap(seed) {
     console.log(seed);
-    // how many (tiles per noise value) you want: ~5-6 is a reasonable value
+    // how many (tiles per noise value) you want: ~5 is a reasonable value
     let chunkSize = CHUNK_SIZE;
     chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
     const map = [];
