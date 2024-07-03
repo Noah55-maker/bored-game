@@ -123,13 +123,12 @@ function generateMap(seed) {
 }
 // TODO: add distance checks?
 function troopCanMove(troop, deltaX, deltaY) {
-    const newX = troop.x + deltaX;
-    const newY = troop.y + deltaY;
+    const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
     if (newX < 0 || newX > MAP_LENGTH - 1 || newY < 0 || newY > MAP_LENGTH - 1) {
         return false;
     }
-    const newTile = board[newY][newX].type;
     const currentTile = board[troop.y][troop.x].type;
+    const newTile = board[newY][newX].type;
     if (newTile == VOLCANO) {
         return false;
     }
@@ -137,6 +136,14 @@ function troopCanMove(troop, deltaX, deltaY) {
         if ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip)
             return true;
         else
+            return false;
+    }
+    for (let i = 0; i < player1.troops.length; i++) {
+        if (player1.troops[i].x == newX && player1.troops[i].y == newY)
+            return false;
+    }
+    for (let i = 0; i < player2.troops.length; i++) {
+        if (player2.troops[i].x == newX && player2.troops[i].y == newY)
             return false;
     }
     return true;
@@ -223,12 +230,10 @@ try {
             generateMap(seed);
         }
     });
-    // populate array   
+    // populate array
     for (let i = 0; i < MAP_LENGTH; i++) {
         board.push([]);
     }
-    console.log(board);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
     seed = Math.random() * 1e9;
     generateMap(seed);
     init(drawBoard);
