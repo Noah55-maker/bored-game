@@ -2,7 +2,6 @@
  * -------
  * Maybe: Movement animations
  * Orientate ship
- * Coast tiles should be exclusively adjacent to land tiles
  */
 import { init, showError } from "./renderer.js";
 import perlinNoise from "./noise.js";
@@ -48,6 +47,9 @@ class Tile {
     constructor(type) {
         this.type = type;
         this.modified = false;
+    }
+    isLandTile() {
+        return (this.type !== COAST && this.type !== WATER && this.type !== OCEAN);
     }
 }
 class Player {
@@ -117,6 +119,19 @@ function generateMap(seed) {
                 board[i][j] = new Tile(MOUNTAIN);
             else
                 board[i][j] = new Tile(VOLCANO);
+        }
+    }
+    // coast should be adjacent to a land tile
+    for (let i = 0; i < MAP_LENGTH; i++) {
+        for (let j = 0; j < MAP_LENGTH; j++) {
+            if (board[i][j].type !== COAST)
+                continue;
+            if (i > 0 && board[i - 1][j].isLandTile() ||
+                i < MAP_LENGTH - 1 && board[i + 1][j].isLandTile() ||
+                j > 0 && board[i][j - 1].isLandTile() ||
+                j < MAP_LENGTH - 1 && board[i][j + 1].isLandTile())
+                continue;
+            board[i][j] = new Tile(WATER);
         }
     }
     // board = map;
