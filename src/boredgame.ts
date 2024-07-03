@@ -5,15 +5,12 @@
  * Coast tiles should be exclusively adjacent to land tiles
  */
 
-import { init } from "./renderer.js";
-import { GamePiece } from "./renderer.js";
-import { showError } from "./renderer.js";
+import { init, showError, GamePiece } from "./renderer.js";
 import perlinNoise from "./noise.js"
 
 export let MAP_LENGTH = 19;
 let CHUNK_SIZE = 5;
 
-const tileModifier: boolean[][] = [];
 let seed: number;
 
 enum TileType {
@@ -40,31 +37,7 @@ const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SN
 // should be the same order as TileType
 export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle'];
 
-const ISLAND_MAP: TileType[][] = [
-    [WATER, WATER, COAST, WATER, WATER, COAST, WATER, SNOW, SNOW],
-    [WATER, WATER, PLAINS, FOREST, FOREST, PLAINS, WATER, WATER, SNOW],
-    [WATER, WATER, PLAINS, FOREST, MOUNTAIN, FOREST, PLAINS, COAST, WATER],
-    [WATER, PLAINS, FOREST, MOUNTAIN, VOLCANO, MOUNTAIN, FOREST, WATER, WATER],
-    [WATER, PLAINS, MOUNTAIN, MOUNTAIN, VOLCANO, VOLCANO, FOREST, FOREST, WATER],
-    [WATER, PLAINS, PLAINS, MOUNTAIN, MOUNTAIN, COAST, FOREST, PLAINS, WATER],
-    [WATER, COAST, PLAINS, PLAINS, WATER, WATER, PLAINS, PLAINS, COAST],
-    [WATER, WATER, PLAINS, PLAINS, COAST, PLAINS, PLAINS, WATER, WATER],
-    [WATER, WATER, WATER, WATER, WATER, WATER, COAST, WATER, WATER]
-];
-
-const OTHER_MAP: TileType[][] = [
-    [OCEAN, MOUNTAIN, SNOW, SNOW, COAST, WATER, WATER, OCEAN, OCEAN],
-    [OCEAN, OCEAN, MOUNTAIN, SNOW, FOREST, WATER, OCEAN, OCEAN, VOLCANO],
-    [OCEAN, OCEAN, MOUNTAIN, FOREST, FOREST, FOREST, OCEAN, OCEAN, VOLCANO],
-    [OCEAN, OCEAN, SNOW, MOUNTAIN, PLAINS, COAST, FOREST, PLAINS, PLAINS],
-    [SNOW, SNOW, OCEAN, GRASS, PLAINS, WATER, WATER, PLAINS, COAST],
-    [FOREST, FOREST, FOREST, FOREST, PLAINS, PLAINS, WATER, WATER, WATER],
-    [FOREST, MOUNTAIN, FOREST, PLAINS, PLAINS, PLAINS, PLAINS, PLAINS, WATER],
-    [MOUNTAIN, MOUNTAIN, FOREST, PLAINS, PLAINS, PLAINS, PLAINS, WATER, WATER],
-    [MOUNTAIN, MOUNTAIN, MOUNTAIN, MOUNTAIN, PLAINS, COAST, WATER, WATER, WATER]
-];
-
-let boardLayout = ISLAND_MAP;
+let board: Tile[][] = [];
 
 class Troop {
     public x: number;
@@ -83,19 +56,9 @@ class Tile {
     public type: TileType;
     public modified: boolean;
 
-    private x: number;
-    private y: number;
-
-    constructor(type: TileType, positionX: number, positionY: number) {
+    constructor(type: TileType) {
         this.type = type;
-        this.x = positionX;
-        this.y = positionY;
-
         this.modified = false;
-    }
-
-    draw() {
-        
     }
 
 }
@@ -126,13 +89,13 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
             // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
             const fade = (Math.abs(deltaX) + Math.abs(deltaY) <= 1 && troopCanMove(selectedTroop, deltaX, deltaY));
 
-            const terrain = boardLayout[y][x];
+            const terrain = board[y][x].type;
             gamePieces[terrain].draw(x, y, time, fade);
 
             if (terrain === VOLCANO)
                 gamePieces[LAVA].draw(x, y, time, fade);
 
-            if (tileModifier[y][x]) {
+            if (board[y][x].modified) {
                 if (terrain === COAST)
                     gamePieces[PORT].draw(x, y, time, fade);
                 else if (terrain === PLAINS)
@@ -163,23 +126,23 @@ function generateMap(seed: number) {
     let chunkSize = CHUNK_SIZE;
     chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
 
-    const map: TileType[][] = [];
+    // const map: Tile[][] = [];
+
     for (let i = 0; i < MAP_LENGTH; i++) {
-        map.push([]);
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
-            if (noise < .25) map[i].push(OCEAN);
-            else if (noise < .35) map[i].push(WATER);
-            else if (noise < .4) map[i].push(COAST);
-            else if (noise < .5) map[i].push(PLAINS);
-            else if (noise < .6) map[i].push(GRASS);
-            else if (noise < .7) map[i].push(FOREST);
-            else if (noise < .8) map[i].push(MOUNTAIN);
-            else map[i].push(VOLCANO);
+            if (noise < .25) board[i][j] = new Tile(OCEAN);
+            else if (noise < .35) board[i][j] = new Tile(WATER);
+            else if (noise < .4) board[i][j] = new Tile(COAST);
+            else if (noise < .5) board[i][j] = new Tile(PLAINS);
+            else if (noise < .6) board[i][j] = new Tile(GRASS);
+            else if (noise < .7) board[i][j] = new Tile(FOREST);
+            else if (noise < .8) board[i][j] = new Tile(MOUNTAIN);
+            else board[i][j] = new Tile(VOLCANO);
         }
     }
 
-    return map;
+    // board = map;
 }
 
 // TODO: add distance checks?
@@ -191,15 +154,15 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number) {
         return false;
     }
     
-    const newTile = boardLayout[newY][newX];
-    const currentTile = boardLayout[troop.y][troop.x];
+    const newTile = board[newY][newX].type;
+    const currentTile = board[troop.y][troop.x].type;
 
     if (newTile == VOLCANO) {
         return false;
     }
 
     if (newTile == WATER || newTile == OCEAN) {
-        if ((currentTile == COAST && tileModifier[troop.y][troop.x]) || troop.isOnShip)
+        if ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip)
             return true;
         else
             return false;
@@ -216,21 +179,21 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number) {
 
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
 
-    const currentTile = boardLayout[troop.y][troop.x];
-    const newTile = boardLayout[newY][newX]
+    const currentTile = board[troop.y][troop.x].type;
+    const newTile = board[newY][newX].type;
 
     if (currentTile === COAST) {
         // if player has resources to build boat...
         if (newTile === WATER || newTile === OCEAN) {
-            tileModifier[newY][newX] = true;
+            board[newY][newX].modified = true;
             troop.isOnShip = true;
         }
     }
     
     if (currentTile === WATER || currentTile === OCEAN) {
         if (newTile === WATER || newTile === OCEAN) {
-            tileModifier[troop.y][troop.x] = false;
-            tileModifier[newY][newX] = true;
+            board[troop.y][troop.x].modified = false;
+            board[newY][newX].modified = true;
         }
         // if (newTile === COAST) ...
         else { // moving to coast or land tile
@@ -244,24 +207,24 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number) {
 try {
     addEventListener("keydown", (event) => {
         const currentPlayer = (playerTurn === 1 ? player1 : player2);
-        const targetTroop = currentPlayer.troops[focusedTroopIndex];
+        const focusedTroop = currentPlayer.troops[focusedTroopIndex];
 
         // move troop
         if (event.key == "ArrowLeft")
-            moveTroop(targetTroop, -1, 0);
+            moveTroop(focusedTroop, -1, 0);
         else if (event.key == "ArrowRight")
-            moveTroop(targetTroop, +1, 0);
+            moveTroop(focusedTroop, +1, 0);
         else if (event.key == "ArrowUp")
-            moveTroop(targetTroop, 0, -1);
+            moveTroop(focusedTroop, 0, -1);
         else if (event.key == "ArrowDown")
-            moveTroop(targetTroop, 0, +1);
+            moveTroop(focusedTroop, 0, +1);
 
         // modify tile
         else if (event.key == " ") {
-            tileModifier[targetTroop.y][targetTroop.x] = !tileModifier[targetTroop.y][targetTroop.x];
+            board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
 
-            if (boardLayout[targetTroop.y][targetTroop.x] === WATER || boardLayout[targetTroop.y][targetTroop.x] === OCEAN)
-                targetTroop.isOnShip != targetTroop.isOnShip;
+            if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
+                focusedTroop.isOnShip = !focusedTroop.isOnShip;
         }
 
         if (event.key == "Enter") {
@@ -281,78 +244,44 @@ try {
 
         if (event.key == "m") {
             seed = Math.random() * 1e9;
-            boardLayout = generateMap(seed);
-
-            // clear any modified tiles
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    tileModifier[i][j] = false;
-                }
-            }
+            generateMap(seed);
         } 
 
         if (event.key == "1") {
             MAP_LENGTH--;
-            boardLayout = generateMap(seed);
-
-            // clear any modified tiles
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    tileModifier[i][j] = false;
-                }
-            }
+            generateMap(seed);
         }
 
         if (event.key == "2") {
             MAP_LENGTH++;
-            tileModifier.push([]);
-            boardLayout = generateMap(seed);
-
-            // clear any modified tiles
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    tileModifier[i][j] = false;
-                }
-            }
+            board.push([]);
+            generateMap(seed);
         }
 
         if (event.key == "9") {
             CHUNK_SIZE--;
             if (CHUNK_SIZE == 0)
                 CHUNK_SIZE = 1;
-            boardLayout = generateMap(seed);
-
-            // clear any modified tiles
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    tileModifier[i][j] = false;
-                }
-            }
+            generateMap(seed);
         }
 
         if (event.key == "0") {
             CHUNK_SIZE++;
-            boardLayout = generateMap(seed);
-
-            // clear any modified tiles
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    tileModifier[i][j] = false;
-                }
-            }
+            generateMap(seed);
         }
     });
 
-    // populate array
+    // populate array   
     for (let i = 0; i < MAP_LENGTH; i++) {
-        tileModifier.push([]);
-        for (let j = 0; j < MAP_LENGTH; j++) {
-            tileModifier[i].push(false);
-        }
+        board.push([]);
     }
 
+    console.log(board);
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
     seed = Math.random() * 1e9;
-    boardLayout = generateMap(seed);
+    generateMap(seed);
 
     init(drawBoard);
 } catch (e) {
