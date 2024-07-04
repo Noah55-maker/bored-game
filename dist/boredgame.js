@@ -26,10 +26,11 @@ var TileType;
     TileType[TileType["PORT"] = 13] = "PORT";
     TileType[TileType["SHIP"] = 14] = "SHIP";
     TileType[TileType["CASTLE"] = 15] = "CASTLE";
+    TileType[TileType["WOOD"] = 16] = "WOOD";
 })(TileType || (TileType = {}));
-const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE } = TileType;
+const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD } = TileType;
 // should be the same order as TileType
-export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle'];
+export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood'];
 let board = [];
 class Troop {
     x;
@@ -44,8 +45,10 @@ class Troop {
 class Tile {
     type;
     modified;
-    constructor(type) {
+    height;
+    constructor(type, height) {
         this.type = type;
+        this.height = height;
         this.modified = false;
     }
     isLandTile() {
@@ -71,27 +74,31 @@ function drawBoard(gamePieces, time) {
             // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
             const fade = (Math.abs(deltaX) + Math.abs(deltaY) <= 1 && troopCanMove(selectedTroop, deltaX, deltaY));
             const terrain = board[y][x].type;
-            gamePieces[terrain].draw(x, y, time, fade);
+            gamePieces[terrain].draw(x, y, board[y][x].height, time, fade);
             if (terrain === VOLCANO)
-                gamePieces[LAVA].draw(x, y, time, fade);
+                gamePieces[LAVA].draw(x, y, board[y][x].height, time, fade);
             if (board[y][x].modified) {
                 if (terrain === COAST)
-                    gamePieces[PORT].draw(x, y, time, fade);
+                    gamePieces[PORT].draw(x, y, board[y][x].height, time, fade);
                 else if (terrain === PLAINS)
-                    gamePieces[CASTLE].draw(x, y, time, fade);
+                    gamePieces[CASTLE].draw(x, y, board[y][x].height, time, fade);
                 else if (terrain === WATER || terrain === OCEAN)
-                    gamePieces[SHIP].draw(x, y, time, fade);
+                    gamePieces[SHIP].draw(x, y, board[y][x].height, time, fade);
+                else if (terrain === FOREST)
+                    gamePieces[WOOD].draw(x, y, board[y][x].height, time, false);
             }
         }
     }
     // draw player troops
     for (let i = 0; i < player1.troops.length; i++) {
         const fade = (playerTurn === 1 && focusedTroopIndex === i);
-        gamePieces[SOLDIER_BLUE].draw(player1.troops[i].x, player1.troops[i].y, time, fade);
+        const [x, y] = [player1.troops[i].x, player1.troops[i].y];
+        gamePieces[SOLDIER_BLUE].draw(x, y, board[y][x].height, time, fade);
     }
     for (let i = 0; i < player2.troops.length; i++) {
         const fade = (playerTurn === 2 && focusedTroopIndex === i);
-        gamePieces[SOLDIER_RED].draw(player2.troops[i].x, player2.troops[i].y, time, fade);
+        const [x, y] = [player2.troops[i].x, player2.troops[i].y];
+        gamePieces[SOLDIER_RED].draw(x, y, board[y][x].height, time, fade);
     }
 }
 function generateMap(seed) {
@@ -104,21 +111,21 @@ function generateMap(seed) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
             if (noise < .25)
-                board[i][j] = new Tile(OCEAN);
+                board[i][j] = new Tile(OCEAN, noise);
             else if (noise < .35)
-                board[i][j] = new Tile(WATER);
+                board[i][j] = new Tile(WATER, noise);
             else if (noise < .4)
-                board[i][j] = new Tile(COAST);
+                board[i][j] = new Tile(COAST, noise);
             else if (noise < .5)
-                board[i][j] = new Tile(PLAINS);
+                board[i][j] = new Tile(PLAINS, noise);
             else if (noise < .6)
-                board[i][j] = new Tile(GRASS);
+                board[i][j] = new Tile(GRASS, noise);
             else if (noise < .7)
-                board[i][j] = new Tile(FOREST);
+                board[i][j] = new Tile(FOREST, noise);
             else if (noise < .8)
-                board[i][j] = new Tile(MOUNTAIN);
+                board[i][j] = new Tile(MOUNTAIN, noise);
             else
-                board[i][j] = new Tile(VOLCANO);
+                board[i][j] = new Tile(VOLCANO, noise);
         }
     }
     // coast should be adjacent to a land tile
@@ -131,7 +138,7 @@ function generateMap(seed) {
                 j > 0 && board[i][j - 1].isLandTile() ||
                 j < MAP_LENGTH - 1 && board[i][j + 1].isLandTile())
                 continue;
-            board[i][j] = new Tile(WATER);
+            board[i][j] = new Tile(WATER, .35);
         }
     }
     // board = map;
@@ -227,10 +234,12 @@ try {
         }
         if (event.key == "1") {
             MAP_LENGTH--;
+            console.log('Map length = ' + MAP_LENGTH);
             generateMap(seed);
         }
         if (event.key == "2") {
             MAP_LENGTH++;
+            console.log('Map length = ' + MAP_LENGTH);
             board.push([]);
             generateMap(seed);
         }
