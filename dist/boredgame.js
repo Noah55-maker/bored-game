@@ -50,6 +50,10 @@ class Tile {
         this.type = type;
         this.height = height;
         this.modified = false;
+        if (type === FOREST) {
+            if (Math.random() < .4)
+                this.modified = true;
+        }
     }
     isLandTile() {
         return (this.type !== COAST && this.type !== WATER && this.type !== OCEAN);
@@ -112,9 +116,9 @@ function generateMap(seed) {
             const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
             if (noise < .25)
                 board[i][j] = new Tile(OCEAN, noise);
-            else if (noise < .35)
-                board[i][j] = new Tile(WATER, noise);
             else if (noise < .4)
+                board[i][j] = new Tile(WATER, noise);
+            else if (noise < .45)
                 board[i][j] = new Tile(COAST, noise);
             else if (noise < .5)
                 board[i][j] = new Tile(PLAINS, noise);

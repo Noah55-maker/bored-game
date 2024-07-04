@@ -29,7 +29,7 @@ enum TileType {
     PORT,
     SHIP,
     CASTLE,
-    WOOD
+    WOOD,
 }
 
 const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD } = TileType;
@@ -62,6 +62,11 @@ class Tile {
         this.type = type;
         this.height = height;
         this.modified = false;
+
+        if (type === FOREST) {
+            if (Math.random() < .4)
+                this.modified = true;
+        }
     }
 
     isLandTile() {
@@ -142,8 +147,8 @@ function generateMap(seed: number) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
             if (noise < .25) board[i][j] = new Tile(OCEAN, noise);
-            else if (noise < .35) board[i][j] = new Tile(WATER, noise);
-            else if (noise < .4) board[i][j] = new Tile(COAST, noise);
+            else if (noise < .4) board[i][j] = new Tile(WATER, noise);
+            else if (noise < .45) board[i][j] = new Tile(COAST, noise);
             else if (noise < .5) board[i][j] = new Tile(PLAINS, noise);
             else if (noise < .6) board[i][j] = new Tile(GRASS, noise);
             else if (noise < .7) board[i][j] = new Tile(FOREST, noise);
