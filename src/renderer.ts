@@ -10,6 +10,8 @@ import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
 import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 
+const MM_TO_IN = 0.0393700787;
+
 let gl: WebGL2RenderingContext;
 let matrixUniform: WebGLUniformLocation;
 let lightDirectionUniform: WebGLUniformLocation;
@@ -43,7 +45,7 @@ export class GamePiece {
         private diffuse: number[]
     ) { }
 
-    draw(xPosition: number, yPosition: number, time: number, fade: boolean) {
+    draw(xPosition: number, yPosition: number, zValue: number, time: number, fade: boolean) {
         gl.bindVertexArray(this.vao);
 
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
@@ -62,9 +64,9 @@ export class GamePiece {
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
 
         matrix = m4.translate(matrix, 
-            0.04*(xPosition - ((MAP_LENGTH - 1) / 2)), 
+            MM_TO_IN*(xPosition - ((MAP_LENGTH - 1) / 2)), 
             0, 
-            0.04*(yPosition - ((MAP_LENGTH - 1) / 2))
+            MM_TO_IN*(yPosition - ((MAP_LENGTH - 1) / 2))
         );
 
         // changing color brightness
