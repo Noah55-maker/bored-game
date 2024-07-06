@@ -64,7 +64,7 @@ class Tile {
         this.modified = false;
 
         if (type === FOREST) {
-            if (Math.random() < .4)
+            if (Math.random() < .3)
                 this.modified = true;
         }
     }

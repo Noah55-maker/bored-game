@@ -221,6 +221,78 @@ function getCanvas(document: any) {
     return canvas;
 }
 
+async function importModel(assetName:string, vertexPosAttrib: number, vertexNormAttrib: number) {
+    let gamePiece: GamePiece;
+
+    try {
+        const assetObj = await fetch(`/assets/${assetName}.obj`);
+        const objResponse = await assetObj.text();
+        const obj = new OBJFile(objResponse, assetName);
+        const objContents = obj.parse();
+
+        // const assetMtl = await fetch(`/assets/${objContents.materialLibraries}`);
+        // const mtlResponse = await assetMtl.text();
+
+        const assetModels = objContents.models;
+
+        const assetVertices = assetModels[0].vertices;
+        const assetNormals = assetModels[0].vertexNormals;
+        // const assetTextures = assetModels[0].textureCoords;
+
+        const interleavedData: number[] = [];
+
+        for (let j = 0; j <  assetModels.length ; j++) {
+            const assetFaces = assetModels[j].faces;
+
+            for (let k = 0; k < assetFaces.length; k++) {
+                const face = assetFaces[k];
+                for (let l = 0; l < 3; l++) {// will only work for faces with 3 verticies
+                    const assetVertex = assetVertices[face.vertices[l].vertexIndex - 1];
+                    const assetNormal = assetNormals[face.vertices[l].vertexNormalIndex - 1];
+
+                    interleavedData.push(
+                        assetVertex.x,
+                        assetVertex.y,
+                        assetVertex.z,
+                        assetNormal.x,
+                        assetNormal.y,
+                        assetNormal.z
+                    );
+                }
+            }
+        }
+
+        const dataBuffer = createStaticVertexBuffer(gl, new Float32Array(interleavedData));
+        if (dataBuffer === null) {
+            showError('Failed to create dataBuffer');
+            return;
+        } 
+
+        const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPosAttrib, vertexNormAttrib);
+        if (assetVao === null) {
+            showError(`assetVao ${assetName} is null`);
+            return;
+        }
+
+        // hacky implementation that works only for these models??
+        // the material names(?) include the diffuse values that I need
+        const material = assetModels[1].faces[0].material;
+        const diffuseStrings = material.split('_');
+        const diffuse = [
+            parseFloat(diffuseStrings[0]),
+            parseFloat(diffuseStrings[1]),
+            parseFloat(diffuseStrings[2])
+        ];
+
+        gamePiece = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
+    } catch (e) {
+        showError(`Failed to import model ${assetName}: ${e}`);
+        return;
+    }
+
+    return gamePiece;
+}
+
 export async function init(drawBoard: Function) {
     canvas = getCanvas(document);
 
@@ -285,77 +357,16 @@ export async function init(drawBoard: Function) {
     lightDirectionUniform = getUniformLocation(program, 'u_lightDirection');
     diffuseUniform = getUniformLocation(program, 'u_diffuse');
 
-    const gamePieces: GamePiece[] = [];
-
-    // Import models
-    for (let i = 0; i < ASSET_NAMES.length; i++) {
-        try {
-            const assetObj = await fetch(`/assets/${ASSET_NAMES[i]}.obj`);
-            const objResponse = await assetObj.text();
-            const obj = new OBJFile(objResponse, ASSET_NAMES[i]);
-            const objContents = obj.parse();
-
-            // const assetMtl = await fetch(`/assets/${objContents.materialLibraries}`);
-            // const mtlResponse = await assetMtl.text();
-
-            const assetModels = objContents.models;
-
-            const assetVertices = assetModels[0].vertices;
-            const assetNormals = assetModels[0].vertexNormals;
-            // const assetTextures = assetModels[0].textureCoords;
-
-            const interleavedData: number[] = [];
-
-            for (let j = 0; j <  assetModels.length ; j++) {
-                const assetFaces = assetModels[j].faces;
-
-                for (let k = 0; k < assetFaces.length; k++) {
-                    const face = assetFaces[k];
-                    for (let l = 0; l < 3; l++) {// will only work for faces with 3 verticies
-                        const assetVertex = assetVertices[face.vertices[l].vertexIndex - 1];
-                        const assetNormal = assetNormals[face.vertices[l].vertexNormalIndex - 1];
-
-                        interleavedData.push(
-                            assetVertex.x,
-                            assetVertex.y,
-                            assetVertex.z,
-                            assetNormal.x,
-                            assetNormal.y,
-                            assetNormal.z
-                        );
-                    }
-                }
-            }
-
-            const dataBuffer = createStaticVertexBuffer(gl, new Float32Array(interleavedData));
-            if (dataBuffer === null) {
-                showError('Failed to create dataBuffer');
-                return;
-            } 
-
-            const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPositionAttributeLocation, vertexNormalAttributeLocation);
-            if (assetVao === null) {
-                showError(`assetVao ${ASSET_NAMES[i]} is null`);
-                return;
-            }
-
-            // hacky implementation that works only for these models??
-            // the material names(?) include the diffuse values that I need
-            const material = assetModels[1].faces[0].material;
-            const diffuseStrings = material.split('_');
-            const diffuse = [
-                parseFloat(diffuseStrings[0]),
-                parseFloat(diffuseStrings[1]),
-                parseFloat(diffuseStrings[2])
-            ];
-
-            const gp = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
-            gamePieces.push(gp);
-        } catch (e) {
-            showError(`Failed to import model ${ASSET_NAMES[i]}: ${e}`);
-            return;
-        }
-    }
+    // Import models in parallel
+    const promises = ASSET_NAMES.map(async (assetName) => {
+        const gamePiece = new Promise((resolve) => {
+            setTimeout(() => resolve(
+                importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)
+            ), 3000);
+        });
+        return gamePiece
+    })
+    const gamePieces = await Promise.all(promises);
 
     async function render(time: number) {
         time *= 0.001; // convert to seconds
