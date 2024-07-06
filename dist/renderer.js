@@ -26,6 +26,7 @@ function resizeCanvasToDisplaySize(canvas) {
         // Make the canvas the same size
         canvas.width = displayWidth;
         canvas.height = displayHeight;
+        aspectRatio = canvas.clientWidth / canvas.clientHeight;
     }
     return needResize;
 }
@@ -281,22 +282,19 @@ export async function init(drawBoard) {
     matrixUniform = getUniformLocation(program, 'u_matrix');
     lightDirectionUniform = getUniformLocation(program, 'u_lightDirection');
     diffuseUniform = getUniformLocation(program, 'u_diffuse');
-    // Import models in parallel
+    // Import models asynchronously
     const promises = ASSET_NAMES.map(async (assetName) => {
         const gamePiece = new Promise((resolve) => {
-            setTimeout(() => resolve(importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)), 3000);
+            setTimeout(() => resolve(importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)), 5000);
         });
         return gamePiece;
     });
     const gamePieces = await Promise.all(promises);
+    gl.enable(gl.DEPTH_TEST);
     async function render(time) {
         time *= 0.001; // convert to seconds
         resizeCanvasToDisplaySize(gl.canvas);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        if (canvas === null)
-            return;
-        aspectRatio = canvas.clientWidth / canvas.clientHeight;
-        gl.enable(gl.DEPTH_TEST);
         // sky blue background
         gl.clearColor(.53, .81, .92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
