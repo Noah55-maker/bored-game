@@ -3,7 +3,7 @@
  * Update import code for assets, currently strange implementation
  * Use MTL files?
  * Panning & Zooming
- * Picking game pieces
+ * Optimize matrix code in GamePiece.draw()
  */
 
 import { m4 } from "./m4.js";
@@ -13,12 +13,21 @@ import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 const MM_TO_IN = 0.0393700787;
 
 let gl: WebGL2RenderingContext;
+let canvas: HTMLCanvasElement;
+let aspectRatio: number;
+
 let matrixUniform: WebGLUniformLocation;
 let lightDirectionUniform: WebGLUniformLocation;
 let diffuseUniform: WebGLUniformLocation;
 
-let canvas: HTMLCanvasElement;
-let aspectRatio: number;
+let matrixPickingUniform: WebGLUniformLocation;
+let idUniform: WebGLUniformLocation;
+
+let [mouseX, mouseY] = [-1, -1];
+let isPicking: boolean;
+let index = 0;
+let pickedID: number = 0;
+
 
 function resizeCanvasToDisplaySize(canvas: any) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -46,7 +55,7 @@ export class GamePiece {
         private diffuse: number[]
     ) { }
 
-    draw(xPosition: number, yPosition: number, zValue: number, time: number, fade: boolean) {
+    draw(xPosition: number, yPosition: number, time: number, fade: boolean) {
         gl.bindVertexArray(this.vao);
 
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
@@ -69,23 +78,37 @@ export class GamePiece {
             0, 
             MM_TO_IN*(yPosition - ((MAP_LENGTH - 1) / 2))
         );
+        
+        ++index;
+        
+        if (isPicking) {
+            gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
 
-        // changing color brightness
-        if (fade) {
-            const d: number[] = [];
-
-            // fade brightness
-            this.diffuse.forEach((diffuseValue) => {
-                d.push(diffuseValue * (.95 + Math.abs(.3 * Math.sin(2 * time))));
-            });
-            
-            gl.uniform3fv(diffuseUniform, d);
+            gl.uniform4fv(idUniform, [
+                ((index >>  0) & 0xFF) / 0xFF,
+                ((index >>  8) & 0xFF) / 0xFF,
+                ((index >> 16) & 0xFF) / 0xFF,
+                ((index >> 24) & 0xFF) / 0xFF
+            ]);
         }
         else {
-            gl.uniform3fv(diffuseUniform, this.diffuse);
-        }
+            gl.uniformMatrix4fv(matrixUniform, false, matrix);
 
-        gl.uniformMatrix4fv(matrixUniform, false, matrix);
+            // changing color brightness
+            if (fade || index == pickedID) {
+                const d: number[] = [];
+    
+                // fade brightness
+                this.diffuse.forEach((diffuseValue) => {
+                    d.push(diffuseValue * (.95 + Math.abs(.3 * Math.sin(2 * time))));
+                });
+                
+                gl.uniform3fv(diffuseUniform, d);
+            }
+            else {
+                gl.uniform3fv(diffuseUniform, this.diffuse);
+            }
+        }
 
         gl.drawArrays(gl.TRIANGLES, 0, this.numVerticies);
     }
@@ -96,10 +119,10 @@ const vertexShaderSource = `#version 300 es
 
     in vec4 a_position;
     in vec3 a_normal;
-
-    out vec3 v_normal;
-
+    
     uniform mat4 u_matrix;
+    
+    out vec3 v_normal;
 
     void main() {
         gl_Position = u_matrix * a_position;
@@ -123,6 +146,30 @@ const fragmentShaderSource = `#version 300 es
         float light = dot(u_lightDirection, normal) * .5 + .5;
 
         outputColor = vec4(u_diffuse.rgb * light, 1.0);
+    }
+`;
+
+
+const pickingVS = `#version 300 es
+    in vec4 a_position;
+
+    uniform mat4 u_matrix;
+
+    void main() {
+        // Multiply the position by the matrix.
+        gl_Position = u_matrix * a_position;
+    }
+`;
+
+const pickingFS = `#version 300 es
+    precision highp float;
+
+    uniform vec4 u_id;
+
+    out vec4 outColor;
+
+    void main() {
+        outColor = u_id;
     }
 `;
 
@@ -242,14 +289,15 @@ async function importModel(assetName:string, vertexPosAttrib: number, vertexNorm
 
         const interleavedData: number[] = [];
 
-        for (let j = 0; j <  assetModels.length ; j++) {
-            const assetFaces = assetModels[j].faces;
+        for (let i = 0; i < assetModels.length ; i++) {
+            const assetFaces = assetModels[i].faces;
 
-            for (let k = 0; k < assetFaces.length; k++) {
-                const face = assetFaces[k];
-                for (let l = 0; l < 3; l++) {// will only work for faces with 3 verticies
-                    const assetVertex = assetVertices[face.vertices[l].vertexIndex - 1];
-                    const assetNormal = assetNormals[face.vertices[l].vertexNormalIndex - 1];
+            for (let j = 0; j < assetFaces.length; j++) {
+                const face = assetFaces[j];
+
+                for (let k = 0; k < 3; k++) { // only works for faces with 3 verticies
+                    const assetVertex = assetVertices[face.vertices[k].vertexIndex - 1];
+                    const assetNormal = assetNormals[face.vertices[k].vertexNormalIndex - 1];
 
                     interleavedData.push(
                         assetVertex.x,
@@ -288,50 +336,46 @@ async function importModel(assetName:string, vertexPosAttrib: number, vertexNorm
         gamePiece = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
     } catch (e) {
         showError(`Failed to import model ${assetName}: ${e}`);
-        return;
+        throw new Error(`Could not import model ${assetName}: ${e}`);
     }
 
     return gamePiece;
 }
 
-export async function init(drawBoard: Function) {
-    canvas = getCanvas(document);
-
-    gl = getContext(canvas);
-
+function compileProgram(vertexShaderSource: string, fragmentShaderSource: string) {
     // compile vertex shader
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
     if (vertexShader === null) {
         showError('Could not allocate vertex shader');
-        return;
+        throw new Error('Could not allocate vertex shader');
     }
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
         const compileError = gl.getShaderInfoLog(vertexShader);
         showError(`Failed to COMPILE vertex shader - ${compileError}`);
-        return;
+        throw new Error('Failed to compile VS');;
     }
 
     // compile fragment shader
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     if (fragmentShader === null) {
         showError('Could not allocate fragment shader');
-        return;
+        throw new Error('Could not allocate fragment shader');;
     }
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
         const compileError = gl.getShaderInfoLog(fragmentShader);
         showError(`Failed to COMPILE fragment shader - ${compileError}`);
-        return;
+        throw new Error('Failed to compile FS');;
     }
 
     // link shaders
     const program = gl.createProgram();
     if (program === null) {
         showError('Could not allocate program');
-        return;
+        throw new Error('Could not allocate program');;
     }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
@@ -339,12 +383,28 @@ export async function init(drawBoard: Function) {
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         const linkError = gl.getProgramInfoLog(program);
         showError(`Failed to LINK shaders - ${linkError}`);
-        return;
+        throw new Error('Failed to link shaders');;
     }
 
+    return program;
+}
+
+export async function init(drawBoard: Function) {
+    canvas = getCanvas(document);
+
+    gl = getContext(canvas);
+
+    gl.canvas.addEventListener('mousemove', (e: any) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        mouseY = e.clientY - rect.top;
+    });
+
+    const mainProgram = compileProgram(vertexShaderSource, fragmentShaderSource);
+
     // Get attribute locations
-    const vertexPositionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-    const vertexNormalAttributeLocation = gl.getAttribLocation(program, 'a_normal');
+    const vertexPositionAttributeLocation = gl.getAttribLocation(mainProgram, 'a_position');
+    const vertexNormalAttributeLocation = gl.getAttribLocation(mainProgram, 'a_normal');
     if (vertexPositionAttributeLocation < 0 || vertexNormalAttributeLocation < 0) {
         showError(`Failed to get attribute locations:\n`
             + `pos=${vertexPositionAttributeLocation}\n`
@@ -354,9 +414,9 @@ export async function init(drawBoard: Function) {
     }
 
     // Get uniform locations
-    matrixUniform = getUniformLocation(program, 'u_matrix');
-    lightDirectionUniform = getUniformLocation(program, 'u_lightDirection');
-    diffuseUniform = getUniformLocation(program, 'u_diffuse');
+    matrixUniform = getUniformLocation(mainProgram, 'u_matrix');
+    lightDirectionUniform = getUniformLocation(mainProgram, 'u_lightDirection');
+    diffuseUniform = getUniformLocation(mainProgram, 'u_diffuse');
 
     // Import models asynchronously
     const promises = ASSET_NAMES.map(async (assetName) => {
@@ -369,25 +429,98 @@ export async function init(drawBoard: Function) {
     });
     const gamePieces = await Promise.all(promises);
     
-    gl.enable(gl.DEPTH_TEST);
 
+    // Picking texture setup **************************************************
+    // Create a texture to render to
+    const targetTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+     
+    // create a depth renderbuffer
+    const depthBuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+     
+    function setFramebufferAttachmentSizes(width: number, height: number) {
+        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        // define size and format of level 0
+        const level = 0;
+        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA,
+                        width, height, 0,
+                        gl.RGBA, gl.UNSIGNED_BYTE, null);
+     
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+    }
+     
+    // Create and bind the framebuffer
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+     
+    // attach the texture as the first color attachment
+    const attachmentPoint = gl.COLOR_ATTACHMENT0;
+    const level = 0;
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, level);
+     
+    // make a depth buffer and the same size as the targetTexture
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+    const pickingProgram = compileProgram(pickingVS, pickingFS);
+    matrixPickingUniform = getUniformLocation(pickingProgram, 'u_matrix');
+    idUniform = getUniformLocation(pickingProgram, 'u_id');
+    // end picking texture setup *************************************************/
+
+    gl.enable(gl.DEPTH_TEST);
     async function render(time: number) {
         time *= 0.001; // convert to seconds
-
-        resizeCanvasToDisplaySize(gl.canvas);
+        const start = Date.now();
+        
+        if (resizeCanvasToDisplaySize(gl.canvas))
+            setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
+        
+        // Draw to texture ***********************************************
+        isPicking = true;
+        index = 0;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        
+        gl.useProgram(pickingProgram);
+        drawBoard(gamePieces, time);
 
+
+        if (!(gl.canvas instanceof HTMLCanvasElement)) {
+            throw new Error('gl.canvas is not HTMLCanvasElement')
+        }
+        const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
+        const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
+        const data = new Uint8Array(4);
+        gl.readPixels(
+            pixelX,            // x
+            pixelY,            // y
+            1,                 // width
+            1,                 // height
+            gl.RGBA,           // format
+            gl.UNSIGNED_BYTE,  // type
+            data);             // typed array to hold result
+        pickedID = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+        
+        // Draw to canvas ************************************************
+        isPicking = false;
+        index = 0;
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        
         // sky blue background
         gl.clearColor(.53, .81, .92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.useProgram(program);
+        gl.useProgram(mainProgram);
         gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));
-
 
         drawBoard(gamePieces, time);
 
-        await new Promise((resolve) => setTimeout(resolve, 30));
+        await new Promise((resolve) => setTimeout(resolve, 25 - (Date.now() - start)));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
