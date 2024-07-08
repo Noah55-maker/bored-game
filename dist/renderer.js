@@ -19,8 +19,7 @@ let matrixPickingUniform;
 let idUniform;
 let [mouseX, mouseY] = [-1, -1];
 let isPicking;
-let index = 0;
-let pickedID = 0;
+let pickedData = new Uint8Array(4);
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
     const displayWidth = canvas.clientWidth;
@@ -58,20 +57,19 @@ export class GamePiece {
         // earthquake effect 
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
         matrix = m4.translate(matrix, MM_TO_IN * (xPosition - ((MAP_LENGTH - 1) / 2)), 0, MM_TO_IN * (yPosition - ((MAP_LENGTH - 1) / 2)));
-        ++index;
         if (isPicking) {
             gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
             gl.uniform4fv(idUniform, [
-                ((index >> 0) & 0xFF) / 0xFF,
-                ((index >> 8) & 0xFF) / 0xFF,
-                ((index >> 16) & 0xFF) / 0xFF,
-                ((index >> 24) & 0xFF) / 0xFF
+                (xPosition & 0xFF) / 0xFF,
+                (yPosition & 0xFF) / 0xFF,
+                (0 & 0xFF) / 0xFF,
+                (0 & 0xFF) / 0xFF
             ]);
         }
         else {
             gl.uniformMatrix4fv(matrixUniform, false, matrix);
             // changing color brightness
-            if (fade || index == pickedID) {
+            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition)) {
                 const d = [];
                 // fade brightness
                 this.diffuse.forEach((diffuseValue) => {
@@ -382,11 +380,11 @@ export async function init(drawBoard) {
             setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
         // Draw to texture ***********************************************
         isPicking = true;
-        index = 0;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
         gl.useProgram(pickingProgram);
         drawBoard(gamePieces, time);
+        // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
             throw new Error('gl.canvas is not HTMLCanvasElement');
         }
@@ -399,11 +397,9 @@ export async function init(drawBoard) {
         1, // height
         gl.RGBA, // format
         gl.UNSIGNED_BYTE, // type
-        data); // typed array to hold result
-        pickedID = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+        pickedData); // typed array to hold result
         // Draw to canvas ************************************************
         isPicking = false;
-        index = 0;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         // sky blue background

@@ -25,8 +25,7 @@ let idUniform: WebGLUniformLocation;
 
 let [mouseX, mouseY] = [-1, -1];
 let isPicking: boolean;
-let index = 0;
-let pickedID: number = 0;
+let pickedData: Uint8Array = new Uint8Array(4);
 
 
 function resizeCanvasToDisplaySize(canvas: any) {
@@ -79,23 +78,21 @@ export class GamePiece {
             MM_TO_IN*(yPosition - ((MAP_LENGTH - 1) / 2))
         );
         
-        ++index;
-        
         if (isPicking) {
             gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
 
             gl.uniform4fv(idUniform, [
-                ((index >>  0) & 0xFF) / 0xFF,
-                ((index >>  8) & 0xFF) / 0xFF,
-                ((index >> 16) & 0xFF) / 0xFF,
-                ((index >> 24) & 0xFF) / 0xFF
+                (xPosition & 0xFF) / 0xFF,
+                (yPosition & 0xFF) / 0xFF,
+                (0 & 0xFF) / 0xFF,
+                (0 & 0xFF) / 0xFF
             ]);
         }
         else {
             gl.uniformMatrix4fv(matrixUniform, false, matrix);
 
             // changing color brightness
-            if (fade || index == pickedID) {
+            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition)) {
                 const d: number[] = [];
     
                 // fade brightness
@@ -481,7 +478,6 @@ export async function init(drawBoard: Function) {
         
         // Draw to texture ***********************************************
         isPicking = true;
-        index = 0;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
         
@@ -489,6 +485,7 @@ export async function init(drawBoard: Function) {
         drawBoard(gamePieces, time);
 
 
+        // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
             throw new Error('gl.canvas is not HTMLCanvasElement')
         }
@@ -502,12 +499,10 @@ export async function init(drawBoard: Function) {
             1,                 // height
             gl.RGBA,           // format
             gl.UNSIGNED_BYTE,  // type
-            data);             // typed array to hold result
-        pickedID = data[0] + (data[1] << 8) + (data[2] << 16) + (data[3] << 24);
+            pickedData);             // typed array to hold result
         
         // Draw to canvas ************************************************
         isPicking = false;
-        index = 0;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         
