@@ -4,7 +4,7 @@
  * Orientate ship
  */
 
-import { init, showError, GamePiece } from "./renderer.js";
+import { init, showError, GamePiece, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js"
 import { fade as smoothFade, scale } from "./noise.js";
 
@@ -257,6 +257,18 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
     return true;
 }
 
+function tileHasTroop(x: number, y: number) {
+    for (let i = 0; i < players.length; i++) {
+        const playerTroops = players[i].troops;
+        for (let j = 0; j < playerTroops.length; j++) {
+            if (playerTroops[j].x == x && playerTroops[j].y == y)
+                return [i, j];
+        }
+    }
+
+    return false;
+}
+
 try {
     addEventListener("keydown", (event) => {
         const currentPlayer = players[playerTurn];
@@ -324,6 +336,35 @@ try {
         if (event.key == "0") {
             CHUNK_SIZE++;
             generateMap(seed);
+        }
+    });
+
+    addEventListener("mousedown", (_event: MouseEvent) => {
+        const [x, y] = [pickedData[0], pickedData[1]];
+        const res = tileHasTroop(x, y);
+
+        // if there's no troop, try to move currently selected troop, otherwise add a troop
+        if (res === false) {
+            const selectedTroop = players[playerTurn].troops[selectedTroopIndex];
+
+            if (moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y)) {
+                return;
+            }
+
+            players[playerTurn].troops.push(new Troop(x, y));
+            selectedTroopIndex = players[playerTurn].troops.length - 1;
+            return;
+        }
+        
+        // otherwise, modify the tile or change troop focus
+        if (res[0] == playerTurn) {
+
+            if (selectedTroopIndex == res[1]) {
+                board[y][x].modified = !board[y][x].modified;
+            }
+            else {
+                selectedTroopIndex = res[1];
+            }
         }
     });
 
