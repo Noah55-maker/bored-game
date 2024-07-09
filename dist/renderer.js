@@ -19,7 +19,7 @@ let matrixPickingUniform;
 let idUniform;
 let [mouseX, mouseY] = [-1, -1];
 let isPicking;
-let pickedData = new Uint8Array(4);
+export let pickedData = new Uint8Array(4);
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
     const displayWidth = canvas.clientWidth;
@@ -62,14 +62,14 @@ export class GamePiece {
             gl.uniform4fv(idUniform, [
                 (xPosition & 0xFF) / 0xFF,
                 (yPosition & 0xFF) / 0xFF,
-                (0 & 0xFF) / 0xFF,
+                (1 & 0xFF) / 0xFF,
                 (0 & 0xFF) / 0xFF
             ]);
         }
         else {
             gl.uniformMatrix4fv(matrixUniform, false, matrix);
             // changing color brightness
-            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition)) {
+            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition && pickedData[2] == 1)) {
                 const d = [];
                 // fade brightness
                 this.diffuse.forEach((diffuseValue) => {
@@ -408,7 +408,7 @@ export async function init(drawBoard) {
         gl.useProgram(mainProgram);
         gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));
         drawBoard(gamePieces, time);
-        await new Promise((resolve) => setTimeout(resolve, 25 - (Date.now() - start)));
+        await new Promise((resolve) => setTimeout(resolve, 30 - (Date.now() - start)));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

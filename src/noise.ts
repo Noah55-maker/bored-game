@@ -45,7 +45,7 @@ export default function perlinNoise(x: number, y: number, z: number) {
                 grad(p[BB + 1], x - 1, y - 1, z - 1)))));
 }
 
-function fade(t: number) {
+export function fade(t: number) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
@@ -60,6 +60,6 @@ function grad(hash: number, x: number, y: number, z: number) {
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 }
 
-function scale(n: number) {
+export function scale(n: number) {
     return (1 + n) / 2;
 }

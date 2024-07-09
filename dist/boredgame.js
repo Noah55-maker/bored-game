@@ -5,6 +5,7 @@
  */
 import { init, showError } from "./renderer.js";
 import perlinNoise from "./noise.js";
+import { fade as smoothFade, scale } from "./noise.js";
 export let MAP_LENGTH = 19;
 let CHUNK_SIZE = 5;
 let seed;
@@ -65,15 +66,25 @@ class Player {
         this.troops = troops;
     }
 }
-const player1 = new Player([new Troop(0, 0), new Troop(1, 1)]);
-const player2 = new Player([new Troop(MAP_LENGTH - 1, MAP_LENGTH - 1), new Troop(MAP_LENGTH - 2, MAP_LENGTH - 2)]);
-let playerTurn = 1;
-let focusedTroopIndex = 0;
+const players = [
+    new Player([new Troop(0, 0), new Troop(1, 1)]),
+    new Player([new Troop(MAP_LENGTH - 1, MAP_LENGTH - 1), new Troop(MAP_LENGTH - 2, MAP_LENGTH - 2)])
+];
+let playerTurn = 0;
+let selectedTroopIndex = 0;
+function fade1(x) {
+    return scale(-Math.cos(x));
+}
+function fade2(x) {
+    x /= Math.PI;
+    const fPart = Math.floor(x);
+    return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1));
+}
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
 function drawBoard(gamePieces, time) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            const selectedTroop = (playerTurn === 1 ? player1 : player2).troops[focusedTroopIndex];
+            const selectedTroop = players[playerTurn].troops[selectedTroopIndex];
             const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
             // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
             const fade = (Math.abs(deltaX) + Math.abs(deltaY) <= 1 && troopCanMove(selectedTroop, deltaX, deltaY));
@@ -94,15 +105,14 @@ function drawBoard(gamePieces, time) {
         }
     }
     // draw player troops
-    for (let i = 0; i < player1.troops.length; i++) {
-        const fade = (playerTurn === 1 && focusedTroopIndex === i);
-        const [x, y] = [player1.troops[i].x, player1.troops[i].y];
-        gamePieces[SOLDIER_BLUE].draw(x, y, time, fade);
-    }
-    for (let i = 0; i < player2.troops.length; i++) {
-        const fade = (playerTurn === 2 && focusedTroopIndex === i);
-        const [x, y] = [player2.troops[i].x, player2.troops[i].y];
-        gamePieces[SOLDIER_RED].draw(x, y, time, fade);
+    for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        for (let j = 0; j < p.troops.length; j++) {
+            const fade = (playerTurn === i && selectedTroopIndex === j);
+            const [x, y] = [p.troops[j].x, p.troops[j].y];
+            gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x, y, time, fade);
+            // gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x + (i == 0 ? fade1(time) : fade2(time)), y, time, fade);
+        }
     }
 }
 function generateMap(seed) {
@@ -110,7 +120,6 @@ function generateMap(seed) {
     // how many (tiles per noise value) you want: ~5 is a reasonable value
     let chunkSize = CHUNK_SIZE;
     chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
-    // const map: Tile[][] = [];
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
@@ -145,10 +154,11 @@ function generateMap(seed) {
             board[i][j] = new Tile(WATER, .35);
         }
     }
-    // board = map;
 }
 // TODO: add distance checks?
 function troopCanMove(troop, deltaX, deltaY) {
+    if (Math.abs(deltaX) + Math.abs(deltaY) !== 1)
+        return false;
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
     if (newX < 0 || newX > MAP_LENGTH - 1 || newY < 0 || newY > MAP_LENGTH - 1) {
         return false;
@@ -164,20 +174,20 @@ function troopCanMove(troop, deltaX, deltaY) {
         else
             return false;
     }
-    for (let i = 0; i < player1.troops.length; i++) {
-        if (player1.troops[i].x == newX && player1.troops[i].y == newY)
-            return false;
-    }
-    for (let i = 0; i < player2.troops.length; i++) {
-        if (player2.troops[i].x == newX && player2.troops[i].y == newY)
-            return false;
+    // check for other troops
+    for (let i = 0; i < players.length; i++) {
+        const p = players[i];
+        for (let j = 0; j < p.troops.length; j++) {
+            if (p.troops[j].x == newX && p.troops[j].y == newY)
+                return false;
+        }
     }
     return true;
 }
 // You currently cannot remount a ship without a port, I'm not a fan of this behavior
 function moveTroop(troop, deltaX, deltaY) {
     if (!troopCanMove(troop, deltaX, deltaY)) {
-        return;
+        return false;
     }
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
     const currentTile = board[troop.y][troop.x].type;
@@ -200,11 +210,12 @@ function moveTroop(troop, deltaX, deltaY) {
         }
     }
     [troop.x, troop.y] = [newX, newY];
+    return true;
 }
 try {
     addEventListener("keydown", (event) => {
-        const currentPlayer = (playerTurn === 1 ? player1 : player2);
-        const focusedTroop = currentPlayer.troops[focusedTroopIndex];
+        const currentPlayer = players[playerTurn];
+        const focusedTroop = currentPlayer.troops[selectedTroopIndex];
         // move troop
         if (event.key == "ArrowLeft")
             moveTroop(focusedTroop, -1, 0);
@@ -221,16 +232,15 @@ try {
                 focusedTroop.isOnShip = !focusedTroop.isOnShip;
         }
         if (event.key == "Enter") {
-            if (playerTurn === 1)
-                playerTurn = 2;
-            else
-                playerTurn = 1;
-            focusedTroopIndex = 0;
+            playerTurn++;
+            if (playerTurn >= players.length)
+                playerTurn = 0;
+            selectedTroopIndex = 0;
         }
         if (event.key == "t") {
-            focusedTroopIndex++;
-            if (focusedTroopIndex >= currentPlayer.troops.length)
-                focusedTroopIndex = 0;
+            selectedTroopIndex++;
+            if (selectedTroopIndex >= currentPlayer.troops.length)
+                selectedTroopIndex = 0;
         }
         if (event.key == "m") {
             seed = Math.random() * 1e9;

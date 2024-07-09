@@ -25,7 +25,7 @@ let idUniform: WebGLUniformLocation;
 
 let [mouseX, mouseY] = [-1, -1];
 let isPicking: boolean;
-let pickedData: Uint8Array = new Uint8Array(4);
+export let pickedData: Uint8Array = new Uint8Array(4);
 
 
 function resizeCanvasToDisplaySize(canvas: any) {
@@ -84,7 +84,7 @@ export class GamePiece {
             gl.uniform4fv(idUniform, [
                 (xPosition & 0xFF) / 0xFF,
                 (yPosition & 0xFF) / 0xFF,
-                (0 & 0xFF) / 0xFF,
+                (1 & 0xFF) / 0xFF,
                 (0 & 0xFF) / 0xFF
             ]);
         }
@@ -92,7 +92,7 @@ export class GamePiece {
             gl.uniformMatrix4fv(matrixUniform, false, matrix);
 
             // changing color brightness
-            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition)) {
+            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition && pickedData[2] == 1)) {
                 const d: number[] = [];
     
                 // fade brightness
@@ -515,7 +515,7 @@ export async function init(drawBoard: Function) {
 
         drawBoard(gamePieces, time);
 
-        await new Promise((resolve) => setTimeout(resolve, 25 - (Date.now() - start)));
+        await new Promise((resolve) => setTimeout(resolve, 30 - (Date.now() - start)));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

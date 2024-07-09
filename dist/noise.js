@@ -38,7 +38,7 @@ export default function perlinNoise(x, y, z) {
     grad(p[BA + 1], x - 1, y, z - 1)), // OF CUBE
     lerp(u, grad(p[AB + 1], x, y - 1, z - 1), grad(p[BB + 1], x - 1, y - 1, z - 1)))));
 }
-function fade(t) {
+export function fade(t) {
     return t * t * t * (t * (t * 6 - 15) + 10);
 }
 function lerp(t, a, b) {
@@ -50,6 +50,6 @@ function grad(hash, x, y, z) {
     v = h < 4 ? y : h == 12 || h == 14 ? x : z;
     return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
 }
-function scale(n) {
+export function scale(n) {
     return (1 + n) / 2;
 }
