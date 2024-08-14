@@ -9,9 +9,12 @@ import perlinNoise from "./noise.js"
 import { fade as smoothFade, scale } from "./noise.js";
 
 export let MAP_LENGTH = 19;
+
+// how many (tiles per noise value) you want: ~5 is a reasonable value
 let CHUNK_SIZE = 5;
 
 let seed: number;
+let fudgedChunkSize: number;
 
 enum TileType {
     GRASS,
@@ -31,12 +34,13 @@ enum TileType {
     SHIP,
     CASTLE,
     WOOD,
+    STONE,
 }
 
-const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD } = TileType;
+const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD, STONE } = TileType;
 
 // should be the same order as TileType
-export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood'];
+export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood', 'stone'];
 
 
 let board: Tile[][] = [];
@@ -100,6 +104,7 @@ function fade1(x: number) {
 function fade2(x: number) {
     x /= Math.PI;
     const fPart = Math.floor(x);
+    return (smoothFade(x-fPart) - .5) * Math.pow(-1, fPart) + .5;
     return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1)); 
 }
 
@@ -129,6 +134,8 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
                     gamePieces[SHIP].draw(x, y, time, fade);
                 else if (terrain === FOREST)
                     gamePieces[WOOD].draw(x, y, time, false);
+                else if (terrain === MOUNTAIN)
+                    gamePieces[STONE].draw(x, y, time, false);
             }
         }
     }
@@ -148,16 +155,17 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
 
 }
 
-function generateMap(seed: number) {
+function generateMap(seed: number, changeChunkSize: boolean) {
     console.log(seed);
     
-    // how many (tiles per noise value) you want: ~5 is a reasonable value
-    let chunkSize = CHUNK_SIZE;
-    chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
+    if (changeChunkSize) {
+        // we don't want every Nth tile to be the same every time
+        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1; 
+    }
 
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
-            const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
+            const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
             if (noise < .25) board[i][j] = new Tile(OCEAN, noise);
             else if (noise < .4) board[i][j] = new Tile(WATER, noise);
             else if (noise < .45) board[i][j] = new Tile(COAST, noise);
@@ -308,7 +316,7 @@ try {
 
         if (event.key == "m") {
             seed = Math.random() * 1e9;
-            generateMap(seed);
+            generateMap(seed, true);
         } 
 
         if (event.key == "1") {
@@ -316,26 +324,26 @@ try {
             if (MAP_LENGTH == 0)
                 MAP_LENGTH = 1;
             console.log('Map length = ' + MAP_LENGTH);
-            generateMap(seed);
+            generateMap(seed, false);
         }
 
         if (event.key == "2") {
             MAP_LENGTH++;
             console.log('Map length = ' + MAP_LENGTH);
             board.push([]);
-            generateMap(seed);
+            generateMap(seed, false);
         }
 
         if (event.key == "9") {
             CHUNK_SIZE--;
             if (CHUNK_SIZE == 0)
                 CHUNK_SIZE = 1;
-            generateMap(seed);
+            generateMap(seed, true);
         }
 
         if (event.key == "0") {
             CHUNK_SIZE++;
-            generateMap(seed);
+            generateMap(seed, true);
         }
     });
 
@@ -374,7 +382,7 @@ try {
     }
 
     seed = Math.random() * 1e9;
-    generateMap(seed);
+    generateMap(seed, true);
 
     init(drawBoard);
 } catch (e) {

@@ -7,8 +7,10 @@ import { init, showError, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js";
 import { fade as smoothFade, scale } from "./noise.js";
 export let MAP_LENGTH = 19;
+// how many (tiles per noise value) you want: ~5 is a reasonable value
 let CHUNK_SIZE = 5;
 let seed;
+let fudgedChunkSize;
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -28,10 +30,11 @@ var TileType;
     TileType[TileType["SHIP"] = 14] = "SHIP";
     TileType[TileType["CASTLE"] = 15] = "CASTLE";
     TileType[TileType["WOOD"] = 16] = "WOOD";
+    TileType[TileType["STONE"] = 17] = "STONE";
 })(TileType || (TileType = {}));
-const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD } = TileType;
+const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SNOW, SOLDIER_BLUE, SOLDIER_RED, LAVA, PORT, SHIP, CASTLE, WOOD, STONE } = TileType;
 // should be the same order as TileType
-export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood'];
+export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood', 'stone'];
 let board = [];
 class Troop {
     x;
@@ -78,6 +81,7 @@ function fade1(x) {
 function fade2(x) {
     x /= Math.PI;
     const fPart = Math.floor(x);
+    return (smoothFade(x - fPart) - .5) * Math.pow(-1, fPart) + .5;
     return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1));
 }
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
@@ -101,6 +105,8 @@ function drawBoard(gamePieces, time) {
                     gamePieces[SHIP].draw(x, y, time, fade);
                 else if (terrain === FOREST)
                     gamePieces[WOOD].draw(x, y, time, false);
+                else if (terrain === MOUNTAIN)
+                    gamePieces[STONE].draw(x, y, time, false);
             }
         }
     }
@@ -115,14 +121,15 @@ function drawBoard(gamePieces, time) {
         }
     }
 }
-function generateMap(seed) {
+function generateMap(seed, changeChunkSize) {
     console.log(seed);
-    // how many (tiles per noise value) you want: ~5 is a reasonable value
-    let chunkSize = CHUNK_SIZE;
-    chunkSize += Math.random() * .2 - .1; // we don't want every Nth tile to be the same every time
+    if (changeChunkSize) {
+        // we don't want every Nth tile to be the same every time
+        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
+    }
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
-            const noise = perlinNoise(j / chunkSize, i / chunkSize, seed);
+            const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
             if (noise < .25)
                 board[i][j] = new Tile(OCEAN, noise);
             else if (noise < .4)
@@ -254,30 +261,30 @@ try {
         }
         if (event.key == "m") {
             seed = Math.random() * 1e9;
-            generateMap(seed);
+            generateMap(seed, true);
         }
         if (event.key == "1") {
             MAP_LENGTH--;
             if (MAP_LENGTH == 0)
                 MAP_LENGTH = 1;
             console.log('Map length = ' + MAP_LENGTH);
-            generateMap(seed);
+            generateMap(seed, false);
         }
         if (event.key == "2") {
             MAP_LENGTH++;
             console.log('Map length = ' + MAP_LENGTH);
             board.push([]);
-            generateMap(seed);
+            generateMap(seed, false);
         }
         if (event.key == "9") {
             CHUNK_SIZE--;
             if (CHUNK_SIZE == 0)
                 CHUNK_SIZE = 1;
-            generateMap(seed);
+            generateMap(seed, true);
         }
         if (event.key == "0") {
             CHUNK_SIZE++;
-            generateMap(seed);
+            generateMap(seed, true);
         }
     });
     addEventListener("mousedown", (_event) => {
@@ -308,7 +315,7 @@ try {
         board.push([]);
     }
     seed = Math.random() * 1e9;
-    generateMap(seed);
+    generateMap(seed, true);
     init(drawBoard);
 }
 catch (e) {
