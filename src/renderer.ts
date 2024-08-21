@@ -3,14 +3,18 @@
  * Update import code for assets, currently strange implementation
  * Use MTL files?
  * Panning & Zooming
- * Optimize matrix code in GamePiece.draw()
+ * Optimize (combine) matrix code in GamePiece.draw()
+ * Add settings to configure effects
+ *      - floating in the sky effect
+ *      - troop movement animations
+ *      - FPS
  */
 
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
 import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 
-const MM_TO_IN = 0.0393700787;
+const MM_TO_IN = 1 / 25.4;
 
 let gl: WebGL2RenderingContext;
 let canvas: HTMLCanvasElement;
