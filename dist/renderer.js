@@ -58,7 +58,7 @@ export class GamePiece {
         matrix = m4.yRotate(matrix, Math.PI / 4);
         // floating in the sky effect
         matrix = m4.translate(matrix, 0, 0.005 * Math.sin(time), 0);
-        // earthquake effect 
+        // earthquake effect
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
         matrix = m4.translate(matrix, MM_TO_IN * (xPosition - ((MAP_LENGTH - 1) / 2)), 0, MM_TO_IN * (yPosition - ((MAP_LENGTH - 1) / 2)));
         if (isPicking) {
@@ -93,9 +93,9 @@ const vertexShaderSource = `#version 300 es
 
     in vec4 a_position;
     in vec3 a_normal;
-    
+
     uniform mat4 u_matrix;
-    
+
     out vec3 v_normal;
 
     void main() {
@@ -106,11 +106,11 @@ const vertexShaderSource = `#version 300 es
 `;
 const fragmentShaderSource = `#version 300 es
     precision mediump float;
-    
+
     in vec3 v_normal;
     uniform vec3 u_lightDirection;
     uniform vec3 u_diffuse;
-    
+
     out vec4 outputColor;
 
     void main() {

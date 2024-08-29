@@ -73,15 +73,15 @@ export class GamePiece {
         // floating in the sky effect
         matrix = m4.translate(matrix, 0, 0.005*Math.sin(time), 0);
 
-        // earthquake effect 
+        // earthquake effect
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
 
-        matrix = m4.translate(matrix, 
-            MM_TO_IN*(xPosition - ((MAP_LENGTH - 1) / 2)), 
-            0, 
+        matrix = m4.translate(matrix,
+            MM_TO_IN*(xPosition - ((MAP_LENGTH - 1) / 2)),
+            0,
             MM_TO_IN*(yPosition - ((MAP_LENGTH - 1) / 2))
         );
-        
+
         if (isPicking) {
             gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
 
@@ -98,12 +98,12 @@ export class GamePiece {
             // changing color brightness
             if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition && pickedData[2] == 1)) {
                 const d: number[] = [];
-    
+
                 // fade brightness
                 this.diffuse.forEach((diffuseValue) => {
                     d.push(diffuseValue * (.95 + Math.abs(.3 * Math.sin(2 * time))));
                 });
-                
+
                 gl.uniform3fv(diffuseUniform, d);
             }
             else {
@@ -120,9 +120,9 @@ const vertexShaderSource = `#version 300 es
 
     in vec4 a_position;
     in vec3 a_normal;
-    
+
     uniform mat4 u_matrix;
-    
+
     out vec3 v_normal;
 
     void main() {
@@ -134,11 +134,11 @@ const vertexShaderSource = `#version 300 es
 
 const fragmentShaderSource = `#version 300 es
     precision mediump float;
-    
+
     in vec3 v_normal;
     uniform vec3 u_lightDirection;
     uniform vec3 u_diffuse;
-    
+
     out vec4 outputColor;
 
     void main() {
@@ -253,7 +253,7 @@ function normalize(arr: number[]) {
         squareSum += arr[i] * arr[i];
 
     let magnitude = Math.sqrt(squareSum);
-    
+
     const normalized: number[] = [];
 
     for (let i = 0; i < arr.length; i++)
@@ -316,7 +316,7 @@ async function importModel(assetName:string, vertexPosAttrib: number, vertexNorm
         if (dataBuffer === null) {
             showError('Failed to create dataBuffer');
             return;
-        } 
+        }
 
         const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPosAttrib, vertexNormAttrib);
         if (assetVao === null) {
@@ -429,7 +429,7 @@ export async function init(drawBoard: Function) {
         return gamePiece
     });
     const gamePieces = await Promise.all(promises);
-    
+
 
     // Picking texture setup **************************************************
     // Create a texture to render to
@@ -438,11 +438,11 @@ export async function init(drawBoard: Function) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-     
+
     // create a depth renderbuffer
     const depthBuffer = gl.createRenderbuffer();
     gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-     
+
     function setFramebufferAttachmentSizes(width: number, height: number) {
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
         // define size and format of level 0
@@ -450,20 +450,20 @@ export async function init(drawBoard: Function) {
         gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA,
                         width, height, 0,
                         gl.RGBA, gl.UNSIGNED_BYTE, null);
-     
+
         gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
     }
-     
+
     // Create and bind the framebuffer
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-     
+
     // attach the texture as the first color attachment
     const attachmentPoint = gl.COLOR_ATTACHMENT0;
     const level = 0;
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, level);
-     
+
     // make a depth buffer and the same size as the targetTexture
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
@@ -476,15 +476,15 @@ export async function init(drawBoard: Function) {
     async function render(time: number) {
         time *= 0.001; // convert to seconds
         const start = Date.now();
-        
+
         if (resizeCanvasToDisplaySize(gl.canvas))
             setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
-        
+
         // Draw to texture ***********************************************
         isPicking = true;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-        
+
         gl.useProgram(pickingProgram);
         drawBoard(gamePieces, time);
 
@@ -503,12 +503,12 @@ export async function init(drawBoard: Function) {
             gl.RGBA,           // format
             gl.UNSIGNED_BYTE,  // type
             pickedData);       // typed array to hold result
-        
+
         // Draw to canvas ************************************************
         isPicking = false;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        
+
         // sky blue background
         gl.clearColor(.53, .81, .92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

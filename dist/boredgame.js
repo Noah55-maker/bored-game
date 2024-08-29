@@ -1,7 +1,8 @@
 /** TODO
  * -------
- * Maybe: Movement animations
+ * Movement animations
  * Orientate ship
+ * Mouse hover fade - only show for valid moves
  */
 import { init, showError, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js";
@@ -86,7 +87,7 @@ function fade2(x) {
     x /= Math.PI;
     const fPart = Math.floor(x);
     return (smoothFade(x - fPart) - .5) * Math.pow(-1, fPart) + .5;
-    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1)); 
+    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1));
 }
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
 function drawBoard(gamePieces, time) {
@@ -180,10 +181,7 @@ function troopCanMove(troop, deltaX, deltaY) {
         return false;
     }
     if (newTile == WATER || newTile == OCEAN) {
-        if ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip)
-            return true;
-        else
-            return false;
+        return ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip);
     }
     // check for other troops
     for (let i = 0; i < players.length; i++) {
@@ -335,7 +333,18 @@ function mouseDown_beginning(_event) {
     if (res[0] !== -1) {
         return;
     }
-    // TODO: check nearby for opponent troops; redo if there is another nearby
+    // check for nearby opponent troops
+    for (let i = 0; i < players.length; i++) {
+        if (playerTurn === i)
+            continue;
+        for (let j = 0; j < players[i].troops.length; j++) {
+            const otherTroop = players[i].troops[j];
+            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3) {
+                // too close to enemy troop
+                return;
+            }
+        }
+    }
     const tileType = board[y][x].type;
     if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN) {
         return;

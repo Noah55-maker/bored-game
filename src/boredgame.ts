@@ -1,7 +1,8 @@
 /** TODO
  * -------
- * Maybe: Movement animations
+ * Movement animations
  * Orientate ship
+ * Mouse hover fade - only show for valid moves
  */
 
 import { init, showError, GamePiece, pickedData } from "./renderer.js";
@@ -107,14 +108,13 @@ function fade2(x: number) {
     x /= Math.PI;
     const fPart = Math.floor(x);
     return (smoothFade(x-fPart) - .5) * Math.pow(-1, fPart) + .5;
-    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1)); 
+    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1));
 }
 
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
 function drawBoard(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-
             const selectedTroop = players[playerTurn].selectedTroop();
             const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
 
@@ -158,10 +158,10 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
 
 function generateMap(seed: number, changeChunkSize: boolean) {
     console.log(seed);
-    
+
     if (changeChunkSize) {
         // we don't want every Nth tile to be the same every time
-        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1; 
+        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
     }
 
     for (let i = 0; i < MAP_LENGTH; i++) {
@@ -205,7 +205,7 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     if (newX < 0 || newX > MAP_LENGTH - 1 || newY < 0 || newY > MAP_LENGTH - 1) {
         return false;
     }
-    
+
     const currentTile = board[troop.y][troop.x].type;
     const newTile = board[newY][newX].type;
 
@@ -214,10 +214,7 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     if (newTile == WATER || newTile == OCEAN) {
-        if ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip)
-            return true;
-        else
-            return false;
+        return ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip);
     }
 
     // check for other troops
@@ -250,7 +247,7 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
             troop.isOnShip = true;
         }
     }
-    
+
     if (currentTile === WATER || currentTile === OCEAN) {
         if (newTile === WATER || newTile === OCEAN) {
             board[troop.y][troop.x].modified = false;
@@ -354,7 +351,7 @@ function handleMouseDown(_event: MouseEvent) {
         const selectedTroop = currentPlayer.selectedTroop();
 
         if (moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y)) {
-            
+
         }
         else {
             currentPlayer.troops.push(new Troop(x, y));
@@ -365,7 +362,7 @@ function handleMouseDown(_event: MouseEvent) {
     else if (res[0] != playerTurn) {
         return;
     }
-    
+
     // otherwise, modify the tile or change troop focus
     else { // if (res[0] == playerTurn)
         if (currentPlayer.selectedTroopIndex == res[1]) {
@@ -376,7 +373,7 @@ function handleMouseDown(_event: MouseEvent) {
             return;
         }
     }
-    
+
     playerAction();
 }
 
@@ -403,8 +400,20 @@ function mouseDown_beginning(_event: MouseEvent) {
         return;
     }
 
-    // TODO: check nearby for opponent troops; redo if there is another nearby
-    
+    // check for nearby opponent troops
+    for (let i = 0; i < players.length; i++) {
+        if (playerTurn === i)
+            continue;
+
+        for (let j = 0; j < players[i].troops.length; j++) {
+            const otherTroop = players[i].troops[j];
+            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3) {
+                // too close to enemy troop
+                return;
+            }
+        }
+    }
+
     const tileType = board[y][x].type;
     if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN) {
         return;
@@ -416,7 +425,7 @@ function mouseDown_beginning(_event: MouseEvent) {
     if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
         removeEventListener("mousedown", mouseDown_beginning);
         addEventListener("mousedown", handleMouseDown);
-        
+
         moves = 0;
         console.log('end of beginning stage');
     }
