@@ -16,6 +16,13 @@ let CHUNK_SIZE = 5;
 let seed: number;
 let fudgedChunkSize: number;
 
+let playerTurn = 0;
+let moves = 0;
+
+const NUMBER_OF_STARTING_TROOPS = 3;
+const players: Player[] = [];
+const board: Tile[][] = [];
+
 enum TileType {
     GRASS,
     FOREST,
@@ -42,9 +49,6 @@ const { GRASS, FOREST, PLAINS, MOUNTAIN, VOLCANO, WATER, COAST, OCEAN, SWAMP, SN
 // should be the same order as TileType
 export const ASSET_NAMES = ['grass', 'forest', 'plains', 'mountain', 'volcano', 'water', 'coast', 'ocean', 'swamp', 'snow', 'soldierblue', 'soldierred', 'lava', 'port', 'ship', 'castle', 'wood', 'stone'];
 
-
-let board: Tile[][] = [];
-
 class Troop {
     public x: number;
     public y: number;
@@ -61,14 +65,12 @@ class Troop {
 class Tile {
     public type: TileType;
     public modified: boolean;
-    public height: number;
 
-    constructor(type: TileType, height: number) {
+    constructor(type: TileType) {
         this.type = type;
-        this.height = height;
         this.modified = false;
 
-        if (type === FOREST) {
+        if (type === FOREST || type === MOUNTAIN) {
             if (Math.random() < .3)
                 this.modified = true;
         }
@@ -82,20 +84,20 @@ class Tile {
 
 class Player {
     public troops: Troop[];
-    constructor(troops: Troop[]) {
+    public selectedTroopIndex: number;
+
+    constructor(...troops: Troop[]) {
         this.troops = troops;
+        this.selectedTroopIndex = 0;
     }
 
-
+    selectedTroop() {
+        if (this.selectedTroopIndex >= this.troops.length) {
+            this.selectedTroopIndex = 0;
+        }
+        return this.troops[this.selectedTroopIndex];
+    }
 }
-
-const players: Player[] = [
-    new Player([new Troop(0, 0), new Troop(1, 1)]),
-    new Player([new Troop(MAP_LENGTH-1, MAP_LENGTH-1), new Troop(MAP_LENGTH-2, MAP_LENGTH-2)])
-]
-
-let playerTurn = 0;
-let selectedTroopIndex = 0;
 
 function fade1(x: number) {
     return scale(-Math.cos(x));
@@ -105,7 +107,7 @@ function fade2(x: number) {
     x /= Math.PI;
     const fPart = Math.floor(x);
     return (smoothFade(x-fPart) - .5) * Math.pow(-1, fPart) + .5;
-    return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1)); 
+    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1)); 
 }
 
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
@@ -113,7 +115,7 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
 
-            const selectedTroop = players[playerTurn].troops[selectedTroopIndex];
+            const selectedTroop = players[playerTurn].selectedTroop();
             const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
 
             // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
@@ -145,14 +147,13 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
         for (let j = 0; j < p.troops.length; j++) {
-            const fade = (playerTurn === i && selectedTroopIndex === j);
+            const fade = (playerTurn === i && players[playerTurn].selectedTroopIndex === j);
             const [x, y] = [p.troops[j].x, p.troops[j].y];
 
             gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x, y, time, fade);
             // gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x + (i == 0 ? fade1(time) : fade2(time)), y, time, fade);
         }
     }
-
 }
 
 function generateMap(seed: number, changeChunkSize: boolean) {
@@ -166,14 +167,14 @@ function generateMap(seed: number, changeChunkSize: boolean) {
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
-            if (noise < .25) board[i][j] = new Tile(OCEAN, noise);
-            else if (noise < .4) board[i][j] = new Tile(WATER, noise);
-            else if (noise < .45) board[i][j] = new Tile(COAST, noise);
-            else if (noise < .52) board[i][j] = new Tile(PLAINS, noise);
-            else if (noise < .62) board[i][j] = new Tile(GRASS, noise);
-            else if (noise < .72) board[i][j] = new Tile(FOREST, noise);
-            else if (noise < .80) board[i][j] = new Tile(MOUNTAIN, noise);
-            else board[i][j] = new Tile(VOLCANO, noise);
+            if (noise < .25) board[i][j] = new Tile(OCEAN);
+            else if (noise < .4) board[i][j] = new Tile(WATER);
+            else if (noise < .45) board[i][j] = new Tile(COAST);
+            else if (noise < .52) board[i][j] = new Tile(PLAINS);
+            else if (noise < .62) board[i][j] = new Tile(GRASS);
+            else if (noise < .72) board[i][j] = new Tile(FOREST);
+            else if (noise < .80) board[i][j] = new Tile(MOUNTAIN);
+            else board[i][j] = new Tile(VOLCANO);
         }
     }
 
@@ -189,7 +190,7 @@ function generateMap(seed: number, changeChunkSize: boolean) {
                 j < MAP_LENGTH-1 && board[i][j+1].isLandTile())
                 continue;
 
-            board[i][j] = new Tile(WATER, .35);
+            board[i][j] = new Tile(WATER);
         }
     }
 }
@@ -274,112 +275,167 @@ function tileHasTroop(x: number, y: number) {
         }
     }
 
-    return false;
+    return [-1, -1];
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+    const currentPlayer = players[playerTurn];
+    const focusedTroop = currentPlayer.selectedTroop();
+
+    // move troop
+    if (event.key == "ArrowLeft")
+        moveTroop(focusedTroop, -1, 0);
+    else if (event.key == "ArrowRight")
+        moveTroop(focusedTroop, +1, 0);
+    else if (event.key == "ArrowUp")
+        moveTroop(focusedTroop, 0, -1);
+    else if (event.key == "ArrowDown")
+        moveTroop(focusedTroop, 0, +1);
+
+    // modify tile
+    else if (event.key == " ") {
+        board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
+
+        if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
+            focusedTroop.isOnShip = !focusedTroop.isOnShip;
+    }
+
+    if (event.key == "Enter") {
+        nextPlayerTurn();
+    }
+
+    if (event.key == "t") {
+        players[playerTurn].selectedTroopIndex++;
+        if (players[playerTurn].selectedTroopIndex >= currentPlayer.troops.length)
+            players[playerTurn].selectedTroopIndex = 0;
+    }
+
+    if (event.key == "m") {
+        seed = Math.random() * 1e9;
+        generateMap(seed, true);
+    }
+
+    if (event.key == "1") {
+        MAP_LENGTH--;
+        if (MAP_LENGTH == 0)
+            MAP_LENGTH = 1;
+        console.log('Map length = ' + MAP_LENGTH);
+        generateMap(seed, false);
+    }
+
+    if (event.key == "2") {
+        MAP_LENGTH++;
+        console.log('Map length = ' + MAP_LENGTH);
+        board.push([]);
+        generateMap(seed, false);
+    }
+
+    if (event.key == "9") {
+        CHUNK_SIZE--;
+        if (CHUNK_SIZE == 0)
+            CHUNK_SIZE = 1;
+        generateMap(seed, true);
+    }
+
+    if (event.key == "0") {
+        CHUNK_SIZE++;
+        generateMap(seed, true);
+    }
+}
+
+function handleMouseDown(_event: MouseEvent) {
+    const [x, y] = [pickedData[0], pickedData[1]];
+    const res = tileHasTroop(x, y);
+    const currentPlayer = players[playerTurn];
+
+
+    // if there's no troop, try to move currently selected troop, otherwise add a troop
+    if (res[0] === -1) {
+        const selectedTroop = currentPlayer.selectedTroop();
+
+        if (moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y)) {
+            
+        }
+        else {
+            currentPlayer.troops.push(new Troop(x, y));
+            currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
+        }
+    }
+
+    else if (res[0] != playerTurn) {
+        return;
+    }
+    
+    // otherwise, modify the tile or change troop focus
+    else { // if (res[0] == playerTurn)
+        if (currentPlayer.selectedTroopIndex == res[1]) {
+            board[y][x].modified = !board[y][x].modified;
+        }
+        else {
+            currentPlayer.selectedTroopIndex = res[1];
+            return;
+        }
+    }
+    
+    playerAction();
+}
+
+function playerAction() {
+    moves++;
+    if (moves === 3) {
+        moves = 0;
+        nextPlayerTurn();
+    }
+}
+
+function nextPlayerTurn() {
+    playerTurn++;
+    if (playerTurn >= players.length)
+        playerTurn = 0;
+}
+
+function mouseDown_beginning(_event: MouseEvent) {
+    const [x, y] = [pickedData[0], pickedData[1]];
+    const res = tileHasTroop(x, y);
+
+    // if there is a troop on this tile, don't do anything
+    if (res[0] !== -1) {
+        return;
+    }
+
+    // TODO: check nearby for opponent troops; redo if there is another nearby
+    
+    const tileType = board[y][x].type;
+    if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN) {
+        return;
+    }
+
+    players[playerTurn].troops.push(new Troop(x, y));
+
+    moves++;
+    if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
+        removeEventListener("mousedown", mouseDown_beginning);
+        addEventListener("mousedown", handleMouseDown);
+        
+        moves = 0;
+        console.log('end of beginning stage');
+    }
+    nextPlayerTurn();
+    return;
 }
 
 try {
-    addEventListener("keydown", (event) => {
-        const currentPlayer = players[playerTurn];
-        const focusedTroop = currentPlayer.troops[selectedTroopIndex];
-
-        // move troop
-        if (event.key == "ArrowLeft")
-            moveTroop(focusedTroop, -1, 0);
-        else if (event.key == "ArrowRight")
-            moveTroop(focusedTroop, +1, 0);
-        else if (event.key == "ArrowUp")
-            moveTroop(focusedTroop, 0, -1);
-        else if (event.key == "ArrowDown")
-            moveTroop(focusedTroop, 0, +1);
-
-        // modify tile
-        else if (event.key == " ") {
-            board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
-
-            if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
-                focusedTroop.isOnShip = !focusedTroop.isOnShip;
-        }
-
-        if (event.key == "Enter") {
-            playerTurn++;
-            if (playerTurn >= players.length)
-                playerTurn = 0;
-
-            selectedTroopIndex = 0;
-        }
-
-        if (event.key == "t") {
-            selectedTroopIndex++;
-            if (selectedTroopIndex >= currentPlayer.troops.length)
-                selectedTroopIndex = 0;
-        }
-
-        if (event.key == "m") {
-            seed = Math.random() * 1e9;
-            generateMap(seed, true);
-        } 
-
-        if (event.key == "1") {
-            MAP_LENGTH--;
-            if (MAP_LENGTH == 0)
-                MAP_LENGTH = 1;
-            console.log('Map length = ' + MAP_LENGTH);
-            generateMap(seed, false);
-        }
-
-        if (event.key == "2") {
-            MAP_LENGTH++;
-            console.log('Map length = ' + MAP_LENGTH);
-            board.push([]);
-            generateMap(seed, false);
-        }
-
-        if (event.key == "9") {
-            CHUNK_SIZE--;
-            if (CHUNK_SIZE == 0)
-                CHUNK_SIZE = 1;
-            generateMap(seed, true);
-        }
-
-        if (event.key == "0") {
-            CHUNK_SIZE++;
-            generateMap(seed, true);
-        }
-    });
-
-    addEventListener("mousedown", (_event: MouseEvent) => {
-        const [x, y] = [pickedData[0], pickedData[1]];
-        const res = tileHasTroop(x, y);
-
-        // if there's no troop, try to move currently selected troop, otherwise add a troop
-        if (res === false) {
-            const selectedTroop = players[playerTurn].troops[selectedTroopIndex];
-
-            if (moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y)) {
-                return;
-            }
-
-            players[playerTurn].troops.push(new Troop(x, y));
-            selectedTroopIndex = players[playerTurn].troops.length - 1;
-            return;
-        }
-        
-        // otherwise, modify the tile or change troop focus
-        if (res[0] == playerTurn) {
-
-            if (selectedTroopIndex == res[1]) {
-                board[y][x].modified = !board[y][x].modified;
-            }
-            else {
-                selectedTroopIndex = res[1];
-            }
-        }
-    });
+    players.push(
+        new Player(new Troop(0, 0)),
+        new Player(new Troop(MAP_LENGTH-1, MAP_LENGTH-1))
+        // new Player(), new Player()
+    );
+    addEventListener("keydown", handleKeyDown);
+    addEventListener("mousedown", mouseDown_beginning);
 
     // populate array
-    for (let i = 0; i < MAP_LENGTH; i++) {
+    for (let i = 0; i < MAP_LENGTH; i++)
         board.push([]);
-    }
 
     seed = Math.random() * 1e9;
     generateMap(seed, true);

@@ -491,11 +491,10 @@ export async function init(drawBoard: Function) {
 
         // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
-            throw new Error('gl.canvas is not HTMLCanvasElement')
+            throw new Error('gl.canvas is not HTMLCanvasElement');
         }
         const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
         const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
-        const data = new Uint8Array(4);
         gl.readPixels(
             pixelX,            // x
             pixelY,            // y
@@ -503,7 +502,7 @@ export async function init(drawBoard: Function) {
             1,                 // height
             gl.RGBA,           // format
             gl.UNSIGNED_BYTE,  // type
-            pickedData);             // typed array to hold result
+            pickedData);       // typed array to hold result
         
         // Draw to canvas ************************************************
         isPicking = false;
