@@ -1,8 +1,7 @@
 /** TODO
  * -------
- * Movement animations
- * Orientate ship
  * Mouse hover fade - only show for valid moves
+ * Boat behavior when troop dismounts
  */
 
 import { init, showError, GamePiece, pickedData } from "./renderer.js";
@@ -11,9 +10,8 @@ import { fade as smoothFade, scale } from "./noise.js";
 
 export let MAP_LENGTH = 19;
 
-// how many (tiles per noise value) you want: ~5 is a reasonable value
+/** how many (tiles per noise value) you want: ~5 is a reasonable value */
 let CHUNK_SIZE = 5;
-
 let seed: number;
 let fudgedChunkSize: number;
 
@@ -55,11 +53,29 @@ class Troop {
     public y: number;
     public isOnShip: boolean;
 
+    public deltaX: number;
+    public deltaY: number;
+    public isMoving: boolean;
+    public moveTime: number;
+
     constructor(positionX: number, positionY: number) {
         this.x = positionX;
         this.y = positionY;
-
         this.isOnShip = false;
+
+        this.deltaX = 0;
+        this.deltaY = 0;
+        this.isMoving = false;
+        this.moveTime = 0;
+    }
+
+    move(deltaX: number, deltaY: number) {
+        this.deltaX = deltaX;
+        this.deltaY = deltaY;
+        this.x += deltaX;
+        this.y += deltaY;
+        this.isMoving = true;
+        this.moveTime = new Date().getTime() / 1000;
     }
 }
 
@@ -101,14 +117,13 @@ class Player {
 }
 
 function fade1(x: number) {
-    return scale(-Math.cos(x));
+    return scale(Math.cos(x * Math.PI));
 }
 
 function fade2(x: number) {
-    x /= Math.PI;
+    x += 1;
     const fPart = Math.floor(x);
     return (smoothFade(x-fPart) - .5) * Math.pow(-1, fPart) + .5;
-    // return smoothFade(x - fPart) * Math.pow(-1, fPart) + scale(Math.pow(-1, fPart + 1));
 }
 
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
@@ -132,26 +147,43 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
                     gamePieces[PORT].draw(x, y, time, fade);
                 else if (terrain === PLAINS)
                     gamePieces[CASTLE].draw(x, y, time, fade);
-                else if (terrain === WATER || terrain === OCEAN)
-                    gamePieces[SHIP].draw(x, y, time, fade);
                 else if (terrain === FOREST)
-                    gamePieces[WOOD].draw(x, y, time, false);
+                    gamePieces[WOOD].draw(x, y, time);
                 else if (terrain === MOUNTAIN)
-                    gamePieces[STONE].draw(x, y, time, false);
+                    gamePieces[STONE].draw(x, y, time);
             }
         }
     }
 
     // draw player troops
-
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
         for (let j = 0; j < p.troops.length; j++) {
             const fade = (playerTurn === i && players[playerTurn].selectedTroopIndex === j);
-            const [x, y] = [p.troops[j].x, p.troops[j].y];
+            const troop = p.troops[j];
+
+            let [x, y] = [troop.x, troop.y];
+
+            if (troop.isMoving) {
+                const deltaTime = (new Date().getTime() / 1000) - troop.moveTime;
+                if (deltaTime > 1)
+                    troop.isMoving = false;
+
+                x -= troop.deltaX * fade1(deltaTime);
+                y -= troop.deltaY * fade1(deltaTime);
+            }
+
+            if (troop.isOnShip) {
+                let rotation = 0;
+
+                if (troop.deltaX >= 1) rotation = Math.PI;
+                if (troop.deltaY >= 1) rotation = Math.PI / 2;
+                if (troop.deltaY <= -1) rotation = -Math.PI / 2;
+
+                gamePieces[SHIP].draw(x, y, time, false, rotation);
+            }
 
             gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x, y, time, fade);
-            // gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x + (i == 0 ? fade1(time) : fade2(time)), y, time, fade);
         }
     }
 }
@@ -195,14 +227,13 @@ function generateMap(seed: number, changeChunkSize: boolean) {
     }
 }
 
-// TODO: add distance checks?
 function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     if (Math.abs(deltaX) + Math.abs(deltaY) !== 1)
         return false;
 
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
 
-    if (newX < 0 || newX > MAP_LENGTH - 1 || newY < 0 || newY > MAP_LENGTH - 1) {
+    if (newX < 0 || newX >= MAP_LENGTH || newY < 0 || newY >= MAP_LENGTH) {
         return false;
     }
 
@@ -214,7 +245,7 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     if (newTile == WATER || newTile == OCEAN) {
-        return ((currentTile == COAST && board[troop.y][troop.x].modified) || troop.isOnShip);
+        return (troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified));
     }
 
     // check for other troops
@@ -259,15 +290,21 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
         }
     }
 
-    [troop.x, troop.y] = [newX, newY];
+    troop.move(deltaX, deltaY);
     return true;
 }
 
-function tileHasTroop(x: number, y: number) {
+/**
+ * Search all players to see if any are on this tile
+ * @param tileX x coordinate of the tile
+ * @param tileY y coordinate of the tile
+ * @returns [-1, -1] if there's no troop, [playerIndex, playerTroopIndex] otherwise
+ */
+function tileHasTroop(tileX: number, tileY: number) {
     for (let i = 0; i < players.length; i++) {
         const playerTroops = players[i].troops;
         for (let j = 0; j < playerTroops.length; j++) {
-            if (playerTroops[j].x == x && playerTroops[j].y == y)
+            if (playerTroops[j].x == tileX && playerTroops[j].y == tileY)
                 return [i, j];
         }
     }

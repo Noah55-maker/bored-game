@@ -48,7 +48,7 @@ export class GamePiece {
         this.numVerticies = numVerticies;
         this.diffuse = diffuse;
     }
-    draw(xPosition, yPosition, time, fade) {
+    draw(xPosition, yPosition, time, fade = false, rotation = 0) {
         gl.bindVertexArray(this.vao);
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
         let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
@@ -61,6 +61,9 @@ export class GamePiece {
         // earthquake effect
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
         matrix = m4.translate(matrix, MM_TO_IN * (xPosition - ((MAP_LENGTH - 1) / 2)), 0, MM_TO_IN * (yPosition - ((MAP_LENGTH - 1) / 2)));
+        if (rotation != 0) {
+            matrix = m4.yRotate(matrix, rotation);
+        }
         if (isPicking) {
             gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
             gl.uniform4fv(idUniform, [

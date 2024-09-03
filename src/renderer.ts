@@ -58,7 +58,7 @@ export class GamePiece {
         private diffuse: number[]
     ) { }
 
-    draw(xPosition: number, yPosition: number, time: number, fade: boolean) {
+    draw(xPosition: number, yPosition: number, time: number, fade: boolean = false, rotation: number = 0) {
         gl.bindVertexArray(this.vao);
 
         // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
@@ -77,10 +77,14 @@ export class GamePiece {
         // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
 
         matrix = m4.translate(matrix,
-            MM_TO_IN*(xPosition - ((MAP_LENGTH - 1) / 2)),
+            MM_TO_IN * (xPosition - ((MAP_LENGTH - 1) / 2)),
             0,
-            MM_TO_IN*(yPosition - ((MAP_LENGTH - 1) / 2))
+            MM_TO_IN * (yPosition - ((MAP_LENGTH - 1) / 2))
         );
+
+        if (rotation != 0) {
+            matrix = m4.yRotate(matrix, rotation);
+        }
 
         if (isPicking) {
             gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
