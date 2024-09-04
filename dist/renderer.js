@@ -2,7 +2,6 @@
  * -------
  * Update import code for assets, currently strange implementation
  * Use MTL files?
- * Panning & Zooming
  * Optimize (combine) matrix code in GamePiece.draw()
  * Add settings to configure effects
  *      - floating in the sky effect

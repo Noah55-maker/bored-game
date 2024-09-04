@@ -97,6 +97,9 @@ class Tile {
         return (this.type !== COAST && this.type !== WATER && this.type !== OCEAN);
     }
 
+    isModifiable() {
+        return (this.type === COAST || this.type === MOUNTAIN || this.type === FOREST);
+    }
 }
 
 class Player {
@@ -133,8 +136,8 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
             const selectedTroop = players[playerTurn].selectedTroop();
             const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
 
-            // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
-            const fade = (Math.abs(deltaX) + Math.abs(deltaY) <= 1 && troopCanMove(selectedTroop, deltaX, deltaY));
+            const fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
+                || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
 
             const terrain = board[y][x].type;
             gamePieces[terrain].draw(x, y, time, fade);
@@ -317,14 +320,22 @@ function handleKeyDown(event: KeyboardEvent) {
     const focusedTroop = currentPlayer.selectedTroop();
 
     // move troop
-    if (event.key == "ArrowLeft")
+    if (event.key == "ArrowLeft") {
         moveTroop(focusedTroop, -1, 0);
-    else if (event.key == "ArrowRight")
+        playerAction();
+    }
+    else if (event.key == "ArrowRight") {
         moveTroop(focusedTroop, +1, 0);
-    else if (event.key == "ArrowUp")
+        playerAction();
+    }
+    else if (event.key == "ArrowUp") {
         moveTroop(focusedTroop, 0, -1);
-    else if (event.key == "ArrowDown")
+        playerAction();
+    }
+    else if (event.key == "ArrowDown") {
         moveTroop(focusedTroop, 0, +1);
+        playerAction();
+    }
 
     // modify tile
     else if (event.key == " ") {
@@ -332,6 +343,7 @@ function handleKeyDown(event: KeyboardEvent) {
 
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
+        playerAction();
     }
 
     if (event.key == "Enter") {
@@ -381,7 +393,6 @@ function handleMouseDown(_event: MouseEvent) {
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     const currentPlayer = players[playerTurn];
-
 
     // if there's no troop, try to move currently selected troop, otherwise add a troop
     if (res[0] === -1) {
@@ -465,6 +476,7 @@ function mouseDown_beginning(_event: MouseEvent) {
 
         moves = 0;
         console.log('end of beginning stage');
+        // return;
     }
     nextPlayerTurn();
     return;

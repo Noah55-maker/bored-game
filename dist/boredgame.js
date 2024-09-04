@@ -80,6 +80,9 @@ class Tile {
     isLandTile() {
         return (this.type !== COAST && this.type !== WATER && this.type !== OCEAN);
     }
+    isModifiable() {
+        return (this.type === COAST || this.type === MOUNTAIN || this.type === FOREST);
+    }
 }
 class Player {
     troops;
@@ -109,8 +112,8 @@ function drawBoard(gamePieces, time) {
         for (let x = 0; x < MAP_LENGTH; x++) {
             const selectedTroop = players[playerTurn].selectedTroop();
             const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
-            // change the absolute sum to 2 if you want to be able to show being able to move 2 tiles
-            const fade = (Math.abs(deltaX) + Math.abs(deltaY) <= 1 && troopCanMove(selectedTroop, deltaX, deltaY));
+            const fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
+                || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
             const terrain = board[y][x].type;
             gamePieces[terrain].draw(x, y, time, fade);
             if (terrain === VOLCANO)
@@ -269,19 +272,28 @@ function handleKeyDown(event) {
     const currentPlayer = players[playerTurn];
     const focusedTroop = currentPlayer.selectedTroop();
     // move troop
-    if (event.key == "ArrowLeft")
+    if (event.key == "ArrowLeft") {
         moveTroop(focusedTroop, -1, 0);
-    else if (event.key == "ArrowRight")
+        playerAction();
+    }
+    else if (event.key == "ArrowRight") {
         moveTroop(focusedTroop, +1, 0);
-    else if (event.key == "ArrowUp")
+        playerAction();
+    }
+    else if (event.key == "ArrowUp") {
         moveTroop(focusedTroop, 0, -1);
-    else if (event.key == "ArrowDown")
+        playerAction();
+    }
+    else if (event.key == "ArrowDown") {
         moveTroop(focusedTroop, 0, +1);
+        playerAction();
+    }
     // modify tile
     else if (event.key == " ") {
         board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
+        playerAction();
     }
     if (event.key == "Enter") {
         nextPlayerTurn();
@@ -390,6 +402,7 @@ function mouseDown_beginning(_event) {
         addEventListener("mousedown", handleMouseDown);
         moves = 0;
         console.log('end of beginning stage');
+        // return;
     }
     nextPlayerTurn();
     return;
