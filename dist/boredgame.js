@@ -13,6 +13,7 @@ let seed;
 let fudgedChunkSize;
 let playerTurn = 0;
 let moves = 0;
+let lastActionTime = 0;
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
@@ -224,7 +225,13 @@ function troopCanMove(troop, deltaX, deltaY) {
     }
     return true;
 }
-// You currently cannot remount a ship without a port, I'm not a fan of this behavior
+/**
+ * Attempts to move the specified troop by the specified tiles
+ * @param troop The troop to move
+ * @param deltaX The number of tiles to move in the x direction
+ * @param deltaY The number of tiles to move in the y direction
+ * @returns true if troop was moved
+ */
 function moveTroop(troop, deltaX, deltaY) {
     if (!troopCanMove(troop, deltaX, deltaY)) {
         return false;
@@ -269,24 +276,28 @@ function tileHasTroop(tileX, tileY) {
     return [-1, -1];
 }
 function handleKeyDown(event) {
+    const currentTime = new Date().getTime() / 1000;
+    if (currentTime - lastActionTime < 1)
+        return;
+    lastActionTime = currentTime;
     const currentPlayer = players[playerTurn];
     const focusedTroop = currentPlayer.selectedTroop();
     // move troop
     if (event.key == "ArrowLeft") {
-        moveTroop(focusedTroop, -1, 0);
-        playerAction();
+        if (moveTroop(focusedTroop, -1, 0))
+            playerAction();
     }
     else if (event.key == "ArrowRight") {
-        moveTroop(focusedTroop, +1, 0);
-        playerAction();
+        if (moveTroop(focusedTroop, +1, 0))
+            playerAction();
     }
     else if (event.key == "ArrowUp") {
-        moveTroop(focusedTroop, 0, -1);
-        playerAction();
+        if (moveTroop(focusedTroop, 0, -1))
+            playerAction();
     }
     else if (event.key == "ArrowDown") {
-        moveTroop(focusedTroop, 0, +1);
-        playerAction();
+        if (moveTroop(focusedTroop, 0, +1))
+            playerAction();
     }
     // modify tile
     else if (event.key == " ") {
@@ -332,15 +343,18 @@ function handleKeyDown(event) {
     }
 }
 function handleMouseDown(_event) {
+    const currentTime = new Date().getTime() / 1000;
+    if (currentTime - lastActionTime < 1)
+        return;
+    lastActionTime = currentTime;
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     const currentPlayer = players[playerTurn];
     // if there's no troop, try to move currently selected troop, otherwise add a troop
     if (res[0] === -1) {
         const selectedTroop = currentPlayer.selectedTroop();
-        if (moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y)) {
-        }
-        else {
+        const troopMoved = moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y);
+        if (!troopMoved) {
             currentPlayer.troops.push(new Troop(x, y));
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
@@ -400,6 +414,7 @@ function mouseDown_beginning(_event) {
     if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
         removeEventListener("mousedown", mouseDown_beginning);
         addEventListener("mousedown", handleMouseDown);
+        addEventListener("keydown", handleKeyDown);
         moves = 0;
         console.log('end of beginning stage');
         // return;
@@ -411,7 +426,6 @@ try {
     players.push(new Player(new Troop(0, 0)), new Player(new Troop(MAP_LENGTH - 1, MAP_LENGTH - 1))
     // new Player(), new Player()
     );
-    addEventListener("keydown", handleKeyDown);
     addEventListener("mousedown", mouseDown_beginning);
     // populate array
     for (let i = 0; i < MAP_LENGTH; i++)
