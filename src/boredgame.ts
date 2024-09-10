@@ -328,8 +328,7 @@ function handleKeyDown(event: KeyboardEvent) {
         return;
     lastActionTime = currentTime;
 
-    const currentPlayer = players[playerTurn];
-    const focusedTroop = currentPlayer.selectedTroop();
+    const focusedTroop = players[playerTurn].selectedTroop();
 
     // move troop
     if (event.key == "ArrowLeft") {
@@ -357,14 +356,16 @@ function handleKeyDown(event: KeyboardEvent) {
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
         playerAction();
     }
+}
 
+function handleKeyControl(event: KeyboardEvent) {
     if (event.key == "Enter") {
         nextPlayerTurn();
     }
 
     if (event.key == "t") {
         players[playerTurn].selectedTroopIndex++;
-        if (players[playerTurn].selectedTroopIndex >= currentPlayer.troops.length)
+        if (players[playerTurn].selectedTroopIndex >= players[playerTurn].troops.length)
             players[playerTurn].selectedTroopIndex = 0;
     }
 
@@ -406,7 +407,7 @@ function handleMouseDown(_event: MouseEvent) {
     if (currentTime - lastActionTime < 1)
         return;
     lastActionTime = currentTime;
-    
+
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     const currentPlayer = players[playerTurn];
@@ -505,8 +506,9 @@ try {
         new Player(new Troop(MAP_LENGTH-1, MAP_LENGTH-1))
         // new Player(), new Player()
     );
-    
+
     addEventListener("mousedown", mouseDown_beginning);
+    addEventListener("keydown", handleKeyControl);
 
     // populate array
     for (let i = 0; i < MAP_LENGTH; i++)

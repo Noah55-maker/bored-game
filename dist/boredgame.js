@@ -280,8 +280,7 @@ function handleKeyDown(event) {
     if (currentTime - lastActionTime < 1)
         return;
     lastActionTime = currentTime;
-    const currentPlayer = players[playerTurn];
-    const focusedTroop = currentPlayer.selectedTroop();
+    const focusedTroop = players[playerTurn].selectedTroop();
     // move troop
     if (event.key == "ArrowLeft") {
         if (moveTroop(focusedTroop, -1, 0))
@@ -306,12 +305,14 @@ function handleKeyDown(event) {
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
         playerAction();
     }
+}
+function handleKeyControl(event) {
     if (event.key == "Enter") {
         nextPlayerTurn();
     }
     if (event.key == "t") {
         players[playerTurn].selectedTroopIndex++;
-        if (players[playerTurn].selectedTroopIndex >= currentPlayer.troops.length)
+        if (players[playerTurn].selectedTroopIndex >= players[playerTurn].troops.length)
             players[playerTurn].selectedTroopIndex = 0;
     }
     if (event.key == "m") {
@@ -427,6 +428,7 @@ try {
     // new Player(), new Player()
     );
     addEventListener("mousedown", mouseDown_beginning);
+    addEventListener("keydown", handleKeyControl);
     // populate array
     for (let i = 0; i < MAP_LENGTH; i++)
         board.push([]);
