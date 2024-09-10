@@ -6,7 +6,6 @@
 
 import { init, showError, GamePiece, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js"
-import { fade as smoothFade, scale } from "./noise.js";
 
 export let MAP_LENGTH = 19;
 
@@ -120,14 +119,8 @@ class Player {
     }
 }
 
-function fade1(x: number) {
-    return scale(Math.cos(x * Math.PI));
-}
-
-function fade2(x: number) {
-    x += 1;
-    const fPart = Math.floor(x);
-    return (smoothFade(x-fPart) - .5) * Math.pow(-1, fPart) + .5;
+function normalizedFade(x: number) {
+    return (Math.cos(x * Math.PI) + 1) / 2;
 }
 
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
@@ -173,8 +166,8 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
                 if (deltaTime > 1)
                     troop.isMoving = false;
 
-                x -= troop.deltaX * fade1(deltaTime);
-                y -= troop.deltaY * fade1(deltaTime);
+                x -= troop.deltaX * normalizedFade(deltaTime);
+                y -= troop.deltaY * normalizedFade(deltaTime);
             }
 
             if (troop.isOnShip) {

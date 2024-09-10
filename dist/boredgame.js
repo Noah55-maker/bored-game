@@ -5,7 +5,6 @@
  */
 import { init, showError, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js";
-import { fade as smoothFade, scale } from "./noise.js";
 export let MAP_LENGTH = 19;
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
 let CHUNK_SIZE = 5;
@@ -99,13 +98,8 @@ class Player {
         return this.troops[this.selectedTroopIndex];
     }
 }
-function fade1(x) {
-    return scale(Math.cos(x * Math.PI));
-}
-function fade2(x) {
-    x += 1;
-    const fPart = Math.floor(x);
-    return (smoothFade(x - fPart) - .5) * Math.pow(-1, fPart) + .5;
+function normalizedFade(x) {
+    return (Math.cos(x * Math.PI) + 1) / 2;
 }
 // TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
 function drawBoard(gamePieces, time) {
@@ -142,8 +136,8 @@ function drawBoard(gamePieces, time) {
                 const deltaTime = (new Date().getTime() / 1000) - troop.moveTime;
                 if (deltaTime > 1)
                     troop.isMoving = false;
-                x -= troop.deltaX * fade1(deltaTime);
-                y -= troop.deltaY * fade1(deltaTime);
+                x -= troop.deltaX * normalizedFade(deltaTime);
+                y -= troop.deltaY * normalizedFade(deltaTime);
             }
             if (troop.isOnShip) {
                 let rotation = 0;
