@@ -3,7 +3,7 @@
  * Mouse hover fade - only show for valid moves
  * Boat behavior when troop dismounts
  */
-import { init, showError, pickedData } from "./renderer.js";
+import { init, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js";
 export let MAP_LENGTH = 19;
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
@@ -154,7 +154,7 @@ function drawBoard(gamePieces, time) {
     }
 }
 function generateMap(seed, changeChunkSize) {
-    console.log(seed);
+    console.log("seed = " + seed);
     if (changeChunkSize) {
         // we don't want every Nth tile to be the same every time
         fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
@@ -431,5 +431,5 @@ try {
     init(drawBoard);
 }
 catch (e) {
-    showError(`Uncaught JavaScript exception: ${e}`);
+    console.log(`Uncaught JavaScript exception: ${e}`);
 }

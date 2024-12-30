@@ -144,17 +144,6 @@ const pickingFS = `#version 300 es
         outColor = u_id;
     }
 `;
-/** Display an error message to the DOM, beneath the demo element */
-export function showError(errorText) {
-    console.error(errorText);
-    const errorBoxDiv = document.getElementById('error-box');
-    if (errorBoxDiv === null)
-        return;
-    const errorElement = document.createElement('p');
-    errorElement.innerText = errorText;
-    errorBoxDiv.appendChild(errorElement);
-    console.log(errorText);
-}
 function getContext(canvas) {
     const gl = canvas.getContext('webgl2');
     if (!gl) {
@@ -165,8 +154,7 @@ function getContext(canvas) {
 function createStaticVertexBuffer(gl, data) {
     const buffer = gl.createBuffer();
     if (!buffer) {
-        showError('Failed to allocate buffer');
-        return null;
+        throw new Error('Failed to allocate buffer');
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
@@ -176,7 +164,6 @@ function createStaticVertexBuffer(gl, data) {
 function getUniformLocation(program, name) {
     const loc = gl.getUniformLocation(program, name);
     if (loc === null) {
-        showError(`Uniform location ${name} is null`);
         throw new Error(`Uniform location ${name} is null`);
     }
     return loc;
@@ -184,8 +171,7 @@ function getUniformLocation(program, name) {
 function createInterleavedBufferVao(gl, interleavedBuffer, positionAttribLocation, normalAttribLocation) {
     const vao = gl.createVertexArray();
     if (!vao) {
-        showError('Failed to allocate VAO for two buffers');
-        return null;
+        throw new Error('Failed to allocate VAO for two buffers');
     }
     gl.bindVertexArray(vao);
     gl.enableVertexAttribArray(positionAttribLocation);
@@ -218,7 +204,6 @@ function getCanvas(document) {
     return canvas;
 }
 async function importModel(assetName, vertexPosAttrib, vertexNormAttrib) {
-    let gamePiece;
     try {
         const assetObj = await fetch(`/assets/${assetName}.obj`);
         const objResponse = await assetObj.text();
@@ -263,7 +248,6 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib) {
     }
     catch (e) {
         const errMessage = `Failed to import model ${assetName}: ${e}`;
-        showError(errMessage);
         throw new Error(errMessage);
     }
 }
@@ -271,47 +255,36 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
     // compile vertex shader
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
     if (vertexShader === null) {
-        showError('Could not allocate vertex shader');
         throw new Error('Could not allocate vertex shader');
     }
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
     if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
         const compileError = gl.getShaderInfoLog(vertexShader);
-        showError(`Failed to COMPILE vertex shader - ${compileError}`);
-        throw new Error('Failed to compile VS');
-        ;
+        throw new Error(`Failed to compile VS - ${compileError}`);
     }
     // compile fragment shader
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     if (fragmentShader === null) {
-        showError('Could not allocate fragment shader');
         throw new Error('Could not allocate fragment shader');
-        ;
     }
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
     if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
         const compileError = gl.getShaderInfoLog(fragmentShader);
-        showError(`Failed to COMPILE fragment shader - ${compileError}`);
-        throw new Error('Failed to compile FS');
-        ;
+        throw new Error(`Failed to compile FS - ${compileError}`);
     }
     // link shaders
     const program = gl.createProgram();
     if (program === null) {
-        showError('Could not allocate program');
         throw new Error('Could not allocate program');
-        ;
     }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         const linkError = gl.getProgramInfoLog(program);
-        showError(`Failed to LINK shaders - ${linkError}`);
-        throw new Error('Failed to link shaders');
-        ;
+        throw new Error(`Failed to link shaders - ${linkError}`);
     }
     return program;
 }
@@ -328,10 +301,9 @@ export async function init(drawBoard) {
     const vertexPositionAttributeLocation = gl.getAttribLocation(mainProgram, 'a_position');
     const vertexNormalAttributeLocation = gl.getAttribLocation(mainProgram, 'a_normal');
     if (vertexPositionAttributeLocation < 0 || vertexNormalAttributeLocation < 0) {
-        showError(`Failed to get attribute locations:\n`
+        throw new Error(`Failed to get attribute locations:\n`
             + `pos=${vertexPositionAttributeLocation}\n`
             + `normal=${vertexNormalAttributeLocation}\n`);
-        return;
     }
     // Get uniform locations
     matrixUniform = getUniformLocation(mainProgram, 'u_matrix');

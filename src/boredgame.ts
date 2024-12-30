@@ -4,7 +4,7 @@
  * Boat behavior when troop dismounts
  */
 
-import { init, showError, GamePiece, pickedData } from "./renderer.js";
+import { init, GamePiece, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js"
 
 export let MAP_LENGTH = 19;
@@ -186,7 +186,7 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
 }
 
 function generateMap(seed: number, changeChunkSize: boolean) {
-    console.log(seed);
+    console.log("seed = " + seed);
 
     if (changeChunkSize) {
         // we don't want every Nth tile to be the same every time
@@ -512,5 +512,5 @@ try {
 
     init(drawBoard);
 } catch (e) {
-    showError(`Uncaught JavaScript exception: ${e}`);
+    console.log(`Uncaught JavaScript exception: ${e}`);
 }
