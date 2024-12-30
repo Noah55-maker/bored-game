@@ -244,13 +244,11 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib) {
         }
         const dataBuffer = createStaticVertexBuffer(gl, new Float32Array(interleavedData));
         if (dataBuffer === null) {
-            showError('Failed to create dataBuffer');
-            return;
+            throw new Error(`Failed to create dataBuffer for ${assetName}`);
         }
         const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPosAttrib, vertexNormAttrib);
         if (assetVao === null) {
-            showError(`assetVao ${assetName} is null`);
-            return;
+            throw new Error(`Failed to create assetVao for ${assetName}`);
         }
         // hacky implementation that works only for these models??
         // the material names(?) include the diffuse values that I need
@@ -261,13 +259,13 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib) {
             parseFloat(diffuseStrings[1]),
             parseFloat(diffuseStrings[2])
         ];
-        gamePiece = new GamePiece(assetVao, interleavedData.length / 6, diffuse);
+        return new GamePiece(assetVao, interleavedData.length / 6, diffuse);
     }
     catch (e) {
-        showError(`Failed to import model ${assetName}: ${e}`);
-        throw new Error(`Could not import model ${assetName}: ${e}`);
+        const errMessage = `Failed to import model ${assetName}: ${e}`;
+        showError(errMessage);
+        throw new Error(errMessage);
     }
-    return gamePiece;
 }
 function compileProgram(vertexShaderSource, fragmentShaderSource) {
     // compile vertex shader
@@ -340,13 +338,7 @@ export async function init(drawBoard) {
     lightDirectionUniform = getUniformLocation(mainProgram, 'u_lightDirection');
     diffuseUniform = getUniformLocation(mainProgram, 'u_diffuse');
     // Import models asynchronously
-    const promises = ASSET_NAMES.map(async (assetName) => {
-        const gamePiece = new Promise((resolve) => {
-            setTimeout(() => resolve(importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)), 5000);
-        });
-        return gamePiece;
-    });
-    const gamePieces = await Promise.all(promises);
+    const gamePieces = await Promise.all(ASSET_NAMES.map((assetName) => importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)));
     // Picking texture setup **************************************************
     // Create a texture to render to
     const targetTexture = gl.createTexture();
