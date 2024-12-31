@@ -106,9 +106,15 @@ class Player {
     public troops: Troop[];
     public selectedTroopIndex: number;
 
+    public wood: number;
+    public stone: number;
+
     constructor(...troops: Troop[]) {
         this.troops = troops;
         this.selectedTroopIndex = 0;
+
+        this.wood = 0;
+        this.stone = 0;
     }
 
     selectedTroop() {
