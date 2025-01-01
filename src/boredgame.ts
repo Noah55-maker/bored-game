@@ -17,6 +17,7 @@ let fudgedChunkSize: number;
 let playerTurn = 0;
 let moves = 0;
 let lastActionTime = 0;
+let turnHappened = false;
 
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
@@ -82,10 +83,12 @@ class Troop {
 class Tile {
     public type: TileType;
     public modified: boolean;
+    public fade: boolean;
 
     constructor(type: TileType) {
         this.type = type;
         this.modified = false;
+        this.fade = false;
 
         if (type === FOREST || type === MOUNTAIN) {
             if (Math.random() < .3)
@@ -129,17 +132,18 @@ function normalizedFade(x: number) {
     return (Math.cos(x * Math.PI) + 1) / 2;
 }
 
-// TODO: cache the fade values so they don't have to be (redundantly) calculated every frame
 function drawBoard(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            const selectedTroop = players[playerTurn].selectedTroop();
-            const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
-
-            const fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
-                || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
+            if (turnHappened) {
+                const selectedTroop = players[playerTurn].selectedTroop();
+                const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
+                board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
+                                  || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
+            }
 
             const terrain = board[y][x].type;
+            const fade = board[y][x].fade;
             gamePieces[terrain].draw(x, y, time, fade);
 
             if (terrain === VOLCANO)
@@ -189,10 +193,13 @@ function drawBoard(gamePieces: GamePiece[], time: number) {
             gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x, y, time, fade);
         }
     }
+
+    turnHappened = false;
 }
 
 function generateMap(seed: number, changeChunkSize: boolean) {
     console.log("seed = " + seed);
+    turnHappened = true;
 
     if (changeChunkSize) {
         // we don't want every Nth tile to be the same every time
@@ -443,6 +450,7 @@ function handleMouseDown(_event: MouseEvent) {
 
 function playerAction() {
     moves++;
+    turnHappened = true;
     if (moves === 3) {
         moves = 0;
         nextPlayerTurn();
