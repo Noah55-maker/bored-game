@@ -2,6 +2,7 @@
  * -------
  * Update import code for assets, currently strange implementation
  * Use MTL files?
+ * improve picking (optimization, etc)
  * Optimize (combine) matrix code in GamePiece.draw()
  * Add settings to configure effects
  *      - floating in the sky effect
@@ -343,6 +344,8 @@ export async function init(drawBoard) {
     idUniform = getUniformLocation(pickingProgram, 'u_id');
     // end picking texture setup *************************************************/
     gl.enable(gl.DEPTH_TEST);
+    let lastTime = Math.floor(Date.now() / 1000);
+    let numFrames = 0;
     async function render(time) {
         time *= 0.001; // convert to seconds
         const start = Date.now();
@@ -377,6 +380,12 @@ export async function init(drawBoard) {
         gl.useProgram(mainProgram);
         gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));
         drawBoard(gamePieces, time);
+        numFrames++;
+        if (Math.floor(Date.now() / 1000) - lastTime > 0) {
+            console.log(numFrames + " FPS");
+            lastTime = Math.floor(Date.now() / 1000);
+            numFrames = 0;
+        }
         await new Promise((resolve) => setTimeout(resolve, 30 - (Date.now() - start)));
         requestAnimationFrame(render);
     }
