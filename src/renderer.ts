@@ -15,17 +15,21 @@ import { OBJFile } from "./OBJFile.js";
 import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 
 const MM_TO_IN = 1 / 25.4;
+const lightDirection = normalize([.5, .7, 1]);
 
 let gl: WebGL2RenderingContext;
 let canvas: HTMLCanvasElement;
 let aspectRatio: number;
 
-let matrixUniform: WebGLUniformLocation;
-let lightDirectionUniform: WebGLUniformLocation;
-let diffuseUniform: WebGLUniformLocation;
+let matrixInstancedLoc: number;
+let brightnessAttribLoc: number;
+let diffuseUniformInstanced: WebGLUniformLocation;
+let lightDirectionUniformInstanced: WebGLUniformLocation;
 
-let matrixPickingUniform: WebGLUniformLocation;
-let idUniform: WebGLUniformLocation;
+let matrixPickingAttribLoc: number;
+let idAttribLoc: number;
+
+let baseMatrix: number[];
 
 let [mouseX, mouseY] = [-1, -1];
 let isPicking: boolean;
@@ -46,6 +50,10 @@ function resizeCanvasToDisplaySize(canvas: any) {
         canvas.width  = displayWidth;
         canvas.height = displayHeight;
         aspectRatio = canvas.clientWidth / canvas.clientHeight;
+
+        baseMatrix = m4.orthographic(-1, 1, -1/aspectRatio, 1/aspectRatio, -1, 1);
+        baseMatrix = m4.xRotate(baseMatrix, Math.PI / 6);
+        baseMatrix = m4.yRotate(baseMatrix, Math.PI / 4);
     }
 
     return needResize;
@@ -54,127 +62,148 @@ function resizeCanvasToDisplaySize(canvas: any) {
 export class GamePiece {
     constructor(
         private vao: WebGLVertexArrayObject,
+        private pickingVao: WebGLVertexArrayObject,
         private numVerticies: number,
         private diffuse: number[]
     ) { }
 
-    draw(xPosition: number, yPosition: number, time: number, fade: boolean = false, rotation: number = 0) {
-        gl.bindVertexArray(this.vao);
+    drawMultiple(numInstances: number, xPositions: number[], yPositions: number[], time: number, fade: boolean[], rotation: number[]) {
+        if (numInstances == 0) return;
+        gl.bindVertexArray(isPicking ? this.pickingVao : this.vao);
 
-        // let matrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -1, 1);
-        let matrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
+        let positionMatrix = m4.scaleUniformly(baseMatrix, 35 / MAP_LENGTH);
+        positionMatrix = m4.translate(positionMatrix, 0, 0.005*Math.sin(time), 0);
 
-        matrix = m4.scaleUniformly(matrix, 35 / MAP_LENGTH);
+        const matrixData = new Float32Array(numInstances * 16);
+        for (let i = 0; i < numInstances; i++) {
+            let specificMatrix = m4.translate(positionMatrix,
+                MM_TO_IN * (xPositions[i] - ((MAP_LENGTH - 1) / 2)),
+                0,
+                MM_TO_IN * (yPositions[i] - ((MAP_LENGTH - 1) / 2))
+            );
 
-        // isometric view
-        matrix = m4.xRotate(matrix, Math.PI / 6);
-        matrix = m4.yRotate(matrix, Math.PI / 4);
+            specificMatrix = m4.yRotate(specificMatrix, rotation[i]);
+            
+            for (let j = 0; j < 16; j++) {
+                matrixData[i*16+j] = specificMatrix[j];
+            }
+        }
 
-        // floating in the sky effect
-        matrix = m4.translate(matrix, 0, 0.005*Math.sin(time), 0);
+        const matrixBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, matrixData, gl.STATIC_DRAW);
 
-        // earthquake effect
-        // matrix = m4.translate(matrix, 0, 0.005*Math.random(), 0);
+        const bytesPerMatrix = 4*16;
+        for (let i = 0; i < 4; i++) {
+            const loc = i + (isPicking ? matrixPickingAttribLoc : matrixInstancedLoc);
 
-        matrix = m4.translate(matrix,
-            MM_TO_IN * (xPosition - ((MAP_LENGTH - 1) / 2)),
-            0,
-            MM_TO_IN * (yPosition - ((MAP_LENGTH - 1) / 2))
-        );
-
-        if (rotation != 0) {
-            matrix = m4.yRotate(matrix, rotation);
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, bytesPerMatrix, i * 16);
+            gl.vertexAttribDivisor(loc, 1);
         }
 
         if (isPicking) {
-            gl.uniformMatrix4fv(matrixPickingUniform, false, matrix);
-
-            gl.uniform4fv(idUniform, [
-                (xPosition & 0xFF) / 0xFF,
-                (yPosition & 0xFF) / 0xFF,
-                (1 & 0xFF) / 0xFF,
-                (0 & 0xFF) / 0xFF
-            ]);
+            const idArray = new Float32Array(4 * numInstances);
+            for (let i = 0; i < numInstances; i++) {
+                idArray[i*4] = (xPositions[i] & 0xFF) / 0xFF;
+                idArray[i*4+1] = (yPositions[i] & 0xFF) / 0xFF;
+                idArray[i*4+2] = (1 & 0xFF) / 0xFF;
+                idArray[i*4+3] = (0 & 0xFF) / 0xFF;
+            }
+            const idBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, idArray, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(idAttribLoc);
+            gl.vertexAttribPointer(idAttribLoc, 4, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(idAttribLoc, 1);
         }
         else {
-            gl.uniformMatrix4fv(matrixUniform, false, matrix);
+            gl.uniform3fv(diffuseUniformInstanced, this.diffuse);
 
-            // changing color brightness
-            if (fade || (pickedData[0] == xPosition && pickedData[1] == yPosition && pickedData[2] == 1)) {
-                const d: number[] = [];
-
-                // fade brightness
-                this.diffuse.forEach((diffuseValue) => {
-                    d.push(diffuseValue * (.95 + Math.abs(.3 * Math.sin(2 * time))));
-                });
-
-                gl.uniform3fv(diffuseUniform, d);
+            const brightnessArray = new Float32Array(numInstances);
+            const fadeMultiplier = .95 + Math.abs(.3 * Math.sin(2 * time));
+            for (let i = 0; i < numInstances; i++) {
+                if (fade[i] || (pickedData[0] == xPositions[i] && pickedData[1] == yPositions[i] && pickedData[2] == 1))
+                    brightnessArray[i] = fadeMultiplier;
+                else
+                    brightnessArray[i] = 1;
             }
-            else {
-                gl.uniform3fv(diffuseUniform, this.diffuse);
-            }
+            const brightnessBuffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, brightnessBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, brightnessArray, gl.STATIC_DRAW);
+            gl.enableVertexAttribArray(brightnessAttribLoc);
+            gl.vertexAttribPointer(brightnessAttribLoc, 1, gl.FLOAT, false, 0, 0);
+            gl.vertexAttribDivisor(brightnessAttribLoc, 1);
         }
 
-        gl.drawArrays(gl.TRIANGLES, 0, this.numVerticies);
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, this.numVerticies, numInstances);
     }
 }
 
-const vertexShaderSource = `#version 300 es
+const vertexShaderSourceInstanced = `#version 300 es
     precision mediump float;
 
     in vec4 a_position;
     in vec3 a_normal;
-
-    uniform mat4 u_matrix;
+    
+    in mat4 a_matrix;
+    in float a_brightness;
 
     out vec3 v_normal;
-
+    out float v_brightness;
+    
     void main() {
-        gl_Position = u_matrix * a_position;
+        gl_Position = a_matrix * a_position;
 
         v_normal = a_normal;
+        v_brightness = a_brightness;
+
     }
 `;
 
-const fragmentShaderSource = `#version 300 es
+const fragmentShaderSourceInstanced = `#version 300 es
     precision mediump float;
 
     in vec3 v_normal;
-    uniform vec3 u_lightDirection;
+    in float v_brightness;
+
     uniform vec3 u_diffuse;
+    uniform vec3 u_lightDirection;
 
     out vec4 outputColor;
 
     void main() {
-        vec3 normal = normalize(v_normal);
+        float light = dot(u_lightDirection, v_normal) * .5 + .5;
 
-        float light = dot(u_lightDirection, normal) * .5 + .5;
-
-        outputColor = vec4(u_diffuse.rgb * light, 1.0);
+        outputColor = vec4(u_diffuse.rgb * light * v_brightness, 1.0);
     }
 `;
 
 
 const pickingVS = `#version 300 es
     in vec4 a_position;
+    
+    in mat4 a_matrix;
+    in vec4 a_id;
 
-    uniform mat4 u_matrix;
+    out vec4 v_id;
 
     void main() {
-        // Multiply the position by the matrix.
-        gl_Position = u_matrix * a_position;
+        gl_Position = a_matrix * a_position;
+
+        v_id = a_id;
     }
 `;
 
 const pickingFS = `#version 300 es
     precision highp float;
 
-    uniform vec4 u_id;
+    in vec4 v_id;
 
     out vec4 outColor;
 
     void main() {
-        outColor = u_id;
+        outColor = v_id;
     }
 `;
 
@@ -199,10 +228,18 @@ function createStaticVertexBuffer(gl: WebGL2RenderingContext, data: ArrayBufferV
     return buffer;
 }
 
-function getUniformLocation(program: WebGLProgram, name: string) {
+function getUniformLocation(program: WebGLProgram, name: string): WebGLUniformLocation {
     const loc = gl.getUniformLocation(program, name);
     if (loc === null) {
         throw new Error(`Uniform location ${name} is null`);
+    }
+    return loc;
+}
+
+function getAttribLocation(program: WebGLProgram, name: string): number {
+    const loc = gl.getAttribLocation(program, name);
+    if (loc < 0) {
+        throw new Error(`Failed to get attribute location ${name}`);
     }
     return loc;
 }
@@ -236,6 +273,26 @@ function createInterleavedBufferVao(
     return vao;
 }
 
+function createBufferVao(gl: WebGL2RenderingContext, buffer: WebGLBuffer, positionAttribLocation: number) {
+    const vao = gl.createVertexArray();
+    if (!vao) {
+        throw new Error('Failed to allocate VAO for two buffers');
+    }
+
+    gl.bindVertexArray(vao);
+
+    gl.enableVertexAttribArray(positionAttribLocation);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(positionAttribLocation, 3, gl.FLOAT, false, 3 * Float32Array.BYTES_PER_ELEMENT, 0);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    gl.bindVertexArray(null);
+
+    return vao;
+}
+
 function normalize(arr: number[]) {
     let squareSum = 0;
     for (let i = 0; i < arr.length; i++)
@@ -259,7 +316,7 @@ function getCanvas(document: any) {
     return canvas;
 }
 
-async function importModel(assetName: string, vertexPosAttrib: number, vertexNormAttrib: number): Promise<GamePiece> {
+async function importModel(assetName: string, vertexPosAttrib: number, vertexNormAttrib: number, vertPosPickingAttrib: number): Promise<GamePiece> {
     try {
         const assetObj = await fetch(`/assets/${assetName}.obj`);
         const objResponse = await assetObj.text();
@@ -276,8 +333,9 @@ async function importModel(assetName: string, vertexPosAttrib: number, vertexNor
         // const assetTextures = assetModels[0].textureCoords;
 
         const interleavedData: number[] = [];
+        const vertexData: number[] = [];
 
-        for (let i = 0; i < assetModels.length ; i++) {
+        for (let i = 0; i < assetModels.length; i++) {
             const assetFaces = assetModels[i].faces;
 
             for (let j = 0; j < assetFaces.length; j++) {
@@ -295,19 +353,21 @@ async function importModel(assetName: string, vertexPosAttrib: number, vertexNor
                         assetNormal.y,
                         assetNormal.z
                     );
+
+                    vertexData.push(
+                        assetVertex.x,
+                        assetVertex.y,
+                        assetVertex.z
+                    );
                 }
             }
         }
 
         const dataBuffer = createStaticVertexBuffer(gl, new Float32Array(interleavedData));
-        if (dataBuffer === null) {
-            throw new Error(`Failed to create dataBuffer for ${assetName}`);
-        }
-
         const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPosAttrib, vertexNormAttrib);
-        if (assetVao === null) {
-            throw new Error(`Failed to create assetVao for ${assetName}`);
-        }
+
+        const pickingDataBuffer = createStaticVertexBuffer(gl, new Float32Array(vertexData));
+        const pickingVao = createBufferVao(gl, pickingDataBuffer, vertPosPickingAttrib);
 
         // hacky implementation that works only for these models??
         // the material names(?) include the diffuse values that I need
@@ -319,7 +379,7 @@ async function importModel(assetName: string, vertexPosAttrib: number, vertexNor
             parseFloat(diffuseStrings[2])
         ];
 
-        return new GamePiece(assetVao, interleavedData.length / 6, diffuse);
+        return new GamePiece(assetVao, pickingVao, interleavedData.length / 6, diffuse);
     } catch (e) {
         const errMessage = `Failed to import model ${assetName}: ${e}`;
         throw new Error(errMessage);
@@ -367,7 +427,7 @@ function compileProgram(vertexShaderSource: string, fragmentShaderSource: string
     return program;
 }
 
-export async function init(drawBoard: Function) {
+export async function init(drawBoardInstanced: Function) {
     canvas = getCanvas(document);
 
     gl = getContext(canvas);
@@ -378,27 +438,16 @@ export async function init(drawBoard: Function) {
         mouseY = e.clientY - rect.top;
     });
 
-    const mainProgram = compileProgram(vertexShaderSource, fragmentShaderSource);
 
-    // Get attribute locations
-    const vertexPositionAttributeLocation = gl.getAttribLocation(mainProgram, 'a_position');
-    const vertexNormalAttributeLocation = gl.getAttribLocation(mainProgram, 'a_normal');
-    if (vertexPositionAttributeLocation < 0 || vertexNormalAttributeLocation < 0) {
-        throw new Error(`Failed to get attribute locations:\n`
-            + `pos=${vertexPositionAttributeLocation}\n`
-            + `normal=${vertexNormalAttributeLocation}\n`
-        );
-    }
+    // Instanced drawing setup
+    const instancedProgram = compileProgram(vertexShaderSourceInstanced, fragmentShaderSourceInstanced);
+    const vertexPositionAttributeLocation = getAttribLocation(instancedProgram, 'a_position');
+    const vertexNormalAttributeLocation = getAttribLocation(instancedProgram, 'a_normal');
+    matrixInstancedLoc = getAttribLocation(instancedProgram, 'a_matrix');
+    brightnessAttribLoc = getAttribLocation(instancedProgram, 'a_brightness');
 
-    // Get uniform locations
-    matrixUniform = getUniformLocation(mainProgram, 'u_matrix');
-    lightDirectionUniform = getUniformLocation(mainProgram, 'u_lightDirection');
-    diffuseUniform = getUniformLocation(mainProgram, 'u_diffuse');
-
-    // Import models asynchronously
-    const gamePieces = await Promise.all(ASSET_NAMES.map((assetName) =>
-        importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation)
-    ));
+    lightDirectionUniformInstanced = getUniformLocation(instancedProgram, 'u_lightDirection');
+    diffuseUniformInstanced = getUniformLocation(instancedProgram, 'u_diffuse');
 
 
     // Picking texture setup **************************************************
@@ -438,12 +487,19 @@ export async function init(drawBoard: Function) {
     gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
 
     const pickingProgram = compileProgram(pickingVS, pickingFS);
-    matrixPickingUniform = getUniformLocation(pickingProgram, 'u_matrix');
-    idUniform = getUniformLocation(pickingProgram, 'u_id');
+    const vertexPositionPickingAttribLoc = getAttribLocation(pickingProgram, 'a_position');
+    matrixPickingAttribLoc = getAttribLocation(pickingProgram, 'a_matrix');
+    idAttribLoc = getAttribLocation(pickingProgram, 'a_id');
     // end picking texture setup *************************************************/
 
+
+    // Import models asynchronously
+    const gamePieces = await Promise.all(ASSET_NAMES.map((assetName) =>
+        importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation, vertexPositionPickingAttribLoc)
+    ));
+
     gl.enable(gl.DEPTH_TEST);
-    let lastTime = Math.floor(Date.now() / 1000);
+    let lastTime = Date.now();
     let numFrames = 0;
     async function render(time: number) {
         time *= 0.001; // convert to seconds
@@ -456,11 +512,10 @@ export async function init(drawBoard: Function) {
         isPicking = true;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-
+        
         gl.useProgram(pickingProgram);
-        drawBoard(gamePieces, time);
-
-
+        drawBoardInstanced(gamePieces, time);
+        
         // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
             throw new Error('gl.canvas is not HTMLCanvasElement');
@@ -485,18 +540,18 @@ export async function init(drawBoard: Function) {
         gl.clearColor(.53, .81, .92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.useProgram(mainProgram);
-        gl.uniform3fv(lightDirectionUniform, normalize([.5, .7, 1]));
-
-        drawBoard(gamePieces, time);
+        gl.useProgram(instancedProgram);
+        gl.uniform3fv(lightDirectionUniformInstanced, lightDirection);
+        drawBoardInstanced(gamePieces, time);
 
         numFrames++;
-        if (Math.floor(Date.now() / 1000) - lastTime > 0) {
+        const endTime = Date.now();
+        if (endTime - lastTime >= 1000) {
             console.log(numFrames + " FPS");
-            lastTime = Math.floor(Date.now() / 1000);
+            lastTime = endTime;
             numFrames = 0;
         }
-        await new Promise((resolve) => setTimeout(resolve, 30 - (Date.now() - start)));
+        await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - start)));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);

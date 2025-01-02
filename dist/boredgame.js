@@ -108,7 +108,7 @@ class Player {
 function normalizedFade(x) {
     return (Math.cos(x * Math.PI) + 1) / 2;
 }
-function drawBoard(gamePieces, time) {
+function drawBoardInstanced(gamePieces, time) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
             if (turnHappened) {
@@ -117,28 +117,53 @@ function drawBoard(gamePieces, time) {
                 board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
                     || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
             }
+        }
+    }
+    turnHappened = false;
+    const instanceCount = [];
+    const xPositions = [];
+    const yPositions = [];
+    const fade = [];
+    const rotation = [];
+    for (let i = 0; i < ASSET_NAMES.length; i++) {
+        instanceCount[i] = 0;
+        xPositions.push([]);
+        yPositions.push([]);
+        fade.push([]);
+        rotation.push([]);
+    }
+    function addPiece(gamePiece, x, y, fades = false, rotationAngle = 0) {
+        instanceCount[gamePiece]++;
+        xPositions[gamePiece].push(x);
+        yPositions[gamePiece].push(y);
+        fade[gamePiece].push(fades);
+        rotation[gamePiece].push(rotationAngle);
+    }
+    for (let y = 0; y < MAP_LENGTH; y++) {
+        for (let x = 0; x < MAP_LENGTH; x++) {
             const terrain = board[y][x].type;
             const fade = board[y][x].fade;
-            gamePieces[terrain].draw(x, y, time, fade);
+            addPiece(terrain, x, y, fade);
             if (terrain === VOLCANO)
-                gamePieces[LAVA].draw(x, y, time, fade);
+                addPiece(LAVA, x, y);
             if (board[y][x].modified) {
                 if (terrain === COAST)
-                    gamePieces[PORT].draw(x, y, time, fade);
+                    addPiece(PORT, x, y, fade);
                 else if (terrain === PLAINS)
-                    gamePieces[CASTLE].draw(x, y, time, fade);
+                    addPiece(CASTLE, x, y, fade);
                 else if (terrain === FOREST)
-                    gamePieces[WOOD].draw(x, y, time);
+                    addPiece(WOOD, x, y);
                 else if (terrain === MOUNTAIN)
-                    gamePieces[STONE].draw(x, y, time);
+                    addPiece(STONE, x, y);
             }
         }
     }
     // draw player troops
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
+        const soldierIndex = (i == 0 ? SOLDIER_BLUE : SOLDIER_RED);
         for (let j = 0; j < p.troops.length; j++) {
-            const fade = (playerTurn === i && players[playerTurn].selectedTroopIndex === j);
+            const isSelected = (playerTurn === i && players[playerTurn].selectedTroopIndex === j);
             const troop = p.troops[j];
             let [x, y] = [troop.x, troop.y];
             if (troop.isMoving) {
@@ -156,12 +181,16 @@ function drawBoard(gamePieces, time) {
                     rotation = Math.PI / 2;
                 if (troop.deltaY <= -1)
                     rotation = -Math.PI / 2;
-                gamePieces[SHIP].draw(x, y, time, false, rotation);
+                addPiece(SHIP, x, y, false, rotation);
             }
-            gamePieces[(i == 0 ? SOLDIER_BLUE : SOLDIER_RED)].draw(x, y, time, fade);
+            addPiece(soldierIndex, x, y, isSelected);
         }
     }
-    turnHappened = false;
+    gamePieces.forEach((gp, index) => {
+        if (instanceCount[index] > 0) {
+            gp.drawMultiple(instanceCount[index], xPositions[index], yPositions[index], time, fade[index], rotation[index]);
+        }
+    });
 }
 function generateMap(seed, changeChunkSize) {
     console.log("seed = " + seed);
@@ -440,7 +469,7 @@ try {
         board.push([]);
     seed = Math.random() * 1e9;
     generateMap(seed, true);
-    init(drawBoard);
+    init(drawBoardInstanced);
 }
 catch (e) {
     console.log(`Uncaught JavaScript exception: ${e}`);
