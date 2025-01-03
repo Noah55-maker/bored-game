@@ -3,13 +3,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc --watch",
-    "serverBuild": "tsc --watch server.ts --module 'es2022'",
-    "server": "node server"
+    "server": "python3 server.py"
   },
   "dependencies": {
     "typescript": "^5.3.3"
-  },
-  "devDependencies": {
-    "@types/node": "^20.11.19"
   }
 }
