@@ -232,10 +232,9 @@ function generateMap(seed: number, changeChunkSize: boolean) {
     console.log("seed = " + seed);
     turnHappened = true;
 
-    if (changeChunkSize) {
-        // we don't want every Nth tile to be the same every time
+    // we don't want every Nth tile to be the same every time
+    if (changeChunkSize)
         fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
-    }
 
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
@@ -309,9 +308,8 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
  * @returns true if troop was moved
  */
 function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
-    if (!troopCanMove(troop, deltaX, deltaY)) {
+    if (!troopCanMove(troop, deltaX, deltaY))
         return false;
-    }
 
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
 
@@ -499,9 +497,8 @@ function mouseDown_beginning(_event: MouseEvent) {
     const res = tileHasTroop(x, y);
 
     // if there is a troop on this tile, don't do anything
-    if (res[0] !== -1) {
+    if (res[0] !== -1)
         return;
-    }
 
     // check for nearby opponent troops
     for (let i = 0; i < players.length; i++) {
@@ -510,17 +507,16 @@ function mouseDown_beginning(_event: MouseEvent) {
 
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
-            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3) {
-                // too close to enemy troop
+
+            // too close to enemy troop
+            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3)
                 return;
-            }
         }
     }
 
     const tileType = board[y][x].type;
-    if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN) {
+    if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN)
         return;
-    }
 
     players[playerTurn].troops.push(new Troop(x, y));
 

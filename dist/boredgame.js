@@ -195,10 +195,9 @@ function drawBoardInstanced(gamePieces, time) {
 function generateMap(seed, changeChunkSize) {
     console.log("seed = " + seed);
     turnHappened = true;
-    if (changeChunkSize) {
-        // we don't want every Nth tile to be the same every time
+    // we don't want every Nth tile to be the same every time
+    if (changeChunkSize)
         fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
-    }
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
@@ -267,9 +266,8 @@ function troopCanMove(troop, deltaX, deltaY) {
  * @returns true if troop was moved
  */
 function moveTroop(troop, deltaX, deltaY) {
-    if (!troopCanMove(troop, deltaX, deltaY)) {
+    if (!troopCanMove(troop, deltaX, deltaY))
         return false;
-    }
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
     const currentTile = board[troop.y][troop.x].type;
     const newTile = board[newY][newX].type;
@@ -426,25 +424,22 @@ function mouseDown_beginning(_event) {
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     // if there is a troop on this tile, don't do anything
-    if (res[0] !== -1) {
+    if (res[0] !== -1)
         return;
-    }
     // check for nearby opponent troops
     for (let i = 0; i < players.length; i++) {
         if (playerTurn === i)
             continue;
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
-            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3) {
-                // too close to enemy troop
+            // too close to enemy troop
+            if (Math.abs(x - otherTroop.x) + Math.abs(y - otherTroop.y) <= 3)
                 return;
-            }
         }
     }
     const tileType = board[y][x].type;
-    if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN) {
+    if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN)
         return;
-    }
     players[playerTurn].troops.push(new Troop(x, y));
     moves++;
     if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {

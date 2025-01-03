@@ -1,7 +1,6 @@
 /** TODO
  * -------
  * Update import code for assets, currently strange implementation
- * Use MTL files?
  * improve picking (optimization, etc)
  * Optimize (combine) matrix code in GamePiece.draw()
  * Add settings to configure effects
@@ -26,15 +25,13 @@ let brightnessAttribLoc: number;
 let diffuseUniformInstanced: WebGLUniformLocation;
 let lightDirectionUniformInstanced: WebGLUniformLocation;
 
-let matrixPickingAttribLoc: number;
-let idAttribLoc: number;
-
 let baseMatrix: number[];
 
+let matrixPickingAttribLoc: number;
+let idAttribLoc: number;
 let [mouseX, mouseY] = [-1, -1];
 let isPicking: boolean;
 export let pickedData: Uint8Array = new Uint8Array(4);
-
 
 function resizeCanvasToDisplaySize(canvas: any) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -83,7 +80,7 @@ export class GamePiece {
             );
 
             specificMatrix = m4.yRotate(specificMatrix, rotation[i]);
-            
+
             for (let j = 0; j < 16; j++) {
                 matrixData[i*16+j] = specificMatrix[j];
             }
@@ -108,7 +105,7 @@ export class GamePiece {
                 idArray[i*4] = (xPositions[i] & 0xFF) / 0xFF;
                 idArray[i*4+1] = (yPositions[i] & 0xFF) / 0xFF;
                 idArray[i*4+2] = (1 & 0xFF) / 0xFF;
-                idArray[i*4+3] = (0 & 0xFF) / 0xFF;
+                // idArray[i*4+3] = (0 & 0xFF) / 0xFF;
             }
             const idBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer);
@@ -145,13 +142,13 @@ const vertexShaderSourceInstanced = `#version 300 es
 
     in vec4 a_position;
     in vec3 a_normal;
-    
+
     in mat4 a_matrix;
     in float a_brightness;
 
     out vec3 v_normal;
     out float v_brightness;
-    
+
     void main() {
         gl_Position = a_matrix * a_position;
 
@@ -182,7 +179,7 @@ const fragmentShaderSourceInstanced = `#version 300 es
 
 const pickingVS = `#version 300 es
     in vec4 a_position;
-    
+
     in mat4 a_matrix;
     in vec4 a_id;
 
@@ -503,7 +500,7 @@ export async function init(drawBoardInstanced: Function) {
     let numFrames = 0;
     async function render(time: number) {
         time *= 0.001; // convert to seconds
-        const start = Date.now();
+        const startTime = Date.now();
 
         if (resizeCanvasToDisplaySize(gl.canvas))
             setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
@@ -512,10 +509,10 @@ export async function init(drawBoardInstanced: Function) {
         isPicking = true;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-        
+
         gl.useProgram(pickingProgram);
         drawBoardInstanced(gamePieces, time);
-        
+
         // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
             throw new Error('gl.canvas is not HTMLCanvasElement');
@@ -551,7 +548,7 @@ export async function init(drawBoardInstanced: Function) {
             lastTime = endTime;
             numFrames = 0;
         }
-        await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - start)));
+        await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - startTime)));
         requestAnimationFrame(render);
     }
     requestAnimationFrame(render);
