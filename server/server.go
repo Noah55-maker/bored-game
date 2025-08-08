@@ -50,13 +50,37 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 		parts := strings.Split(string(message), " ")
 		if parts[0] == "mapgen" {
-			len_str := parts[1]
+			len_str, chunk_str := parts[1], parts[2]
 			len, err := strconv.Atoi(len_str)
+			chunk_size, err := strconv.ParseFloat(chunk_str, 64)
+			chunk_size += rand.Float64() * .2 - .1
+			seed := rand.Float64()*1e9
 
 			response := "map " + len_str + "x" + len_str + " \n"
-			for range len {
-				for range len {
-					response += "" + strconv.Itoa(rand.Intn(8)) + " "
+			for i := range len {
+				for j := range len {
+					noise := perlinNoise(float64(j) / chunk_size, float64(i) / chunk_size, seed)
+					var tile int
+
+					if (noise < .25) {
+						tile = OCEAN
+					} else if (noise < .4) {
+			     		tile = WATER
+				    } else if (noise < .45) {
+				     	tile = COAST
+				    } else if (noise < .52) {
+				     	tile = PLAINS
+				    } else if (noise < .62) {
+				     	tile = GRASS
+				    } else if (noise < .72) {
+				     	tile = FOREST
+				    } else if (noise < .80) {
+				     	tile = MOUNTAIN
+				    } else {
+						tile = VOLCANO
+					}
+
+					response += "" + strconv.Itoa(tile) + " "
 				}
 				response += "\n"
 			}

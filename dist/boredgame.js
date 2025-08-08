@@ -385,7 +385,7 @@ async function handleKeyControl(event) {
     }
     if (event.key == 'g') {
         const l = recievedMessages.length;
-        socket.send(`mapgen ${MAP_LENGTH}`);
+        socket.send(`mapgen ${MAP_LENGTH} ${CHUNK_SIZE}`);
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
