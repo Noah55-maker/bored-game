@@ -4,7 +4,7 @@
         "module": "ES2022",
         "strict": true,
         "rootDir": "./src",
-        "outDir": "./dist",
+        "outDir": "./dist"
     },
     "files": [
         "src/boredgame.ts",

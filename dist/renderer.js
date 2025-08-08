@@ -385,7 +385,7 @@ export async function init(drawBoardInstanced) {
     const vertexPositionPickingAttribLoc = getAttribLocation(pickingProgram, 'a_position');
     matrixPickingAttribLoc = getAttribLocation(pickingProgram, 'a_matrix');
     idAttribLoc = getAttribLocation(pickingProgram, 'a_id');
-    // end picking texture setup *************************************************/
+    // end picking texture setup *************************************************
     // Import models asynchronously
     const gamePieces = await Promise.all(ASSET_NAMES.map((assetName) => importModel(assetName, vertexPositionAttributeLocation, vertexNormalAttributeLocation, vertexPositionPickingAttribLoc)));
     gl.enable(gl.DEPTH_TEST);

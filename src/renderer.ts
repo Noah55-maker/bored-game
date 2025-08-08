@@ -426,7 +426,6 @@ function compileProgram(vertexShaderSource: string, fragmentShaderSource: string
 
 export async function init(drawBoardInstanced: Function) {
     canvas = getCanvas(document);
-
     gl = getContext(canvas);
 
     gl.canvas.addEventListener('mousemove', (e: any) => {
@@ -487,7 +486,7 @@ export async function init(drawBoardInstanced: Function) {
     const vertexPositionPickingAttribLoc = getAttribLocation(pickingProgram, 'a_position');
     matrixPickingAttribLoc = getAttribLocation(pickingProgram, 'a_matrix');
     idAttribLoc = getAttribLocation(pickingProgram, 'a_id');
-    // end picking texture setup *************************************************/
+    // end picking texture setup *************************************************
 
 
     // Import models asynchronously
