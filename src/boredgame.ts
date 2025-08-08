@@ -23,6 +23,11 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
+const socket = new WebSocket('ws://localhost:1234/echo')
+socket.onmessage = (msg) => {
+    console.log(msg);
+};
+
 enum TileType {
     GRASS,
     FOREST,
@@ -434,6 +439,10 @@ function handleKeyControl(event: KeyboardEvent) {
     if (event.key == "0") {
         CHUNK_SIZE++;
         generateMap(seed, true);
+    }
+
+    if (event.key == 's') {
+        socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
     }
 }
 

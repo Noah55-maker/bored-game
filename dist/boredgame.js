@@ -17,6 +17,10 @@ let turnHappened = false;
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
+const socket = new WebSocket('ws://localhost:1234/echo');
+socket.onmessage = (msg) => {
+    console.log(msg);
+};
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";
@@ -373,6 +377,9 @@ function handleKeyControl(event) {
     if (event.key == "0") {
         CHUNK_SIZE++;
         generateMap(seed, true);
+    }
+    if (event.key == 's') {
+        socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
     }
 }
 function handleMouseDown(_event) {
