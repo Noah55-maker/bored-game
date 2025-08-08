@@ -18,8 +18,10 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
 const socket = new WebSocket('ws://localhost:1234/echo');
+const recievedMessages = [];
 socket.onmessage = (msg) => {
     console.log(msg);
+    recievedMessages.push(msg.data);
 };
 var TileType;
 (function (TileType) {
@@ -342,7 +344,7 @@ function handleKeyDown(event) {
         playerAction();
     }
 }
-function handleKeyControl(event) {
+async function handleKeyControl(event) {
     if (event.key == "Enter") {
         nextPlayerTurn();
     }
@@ -380,6 +382,22 @@ function handleKeyControl(event) {
     }
     if (event.key == 's') {
         socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
+    }
+    if (event.key == 'g') {
+        const l = recievedMessages.length;
+        socket.send(`mapgen ${MAP_LENGTH}`);
+        while (recievedMessages.length == l) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        console.log(recievedMessages[l]);
+        const parts = recievedMessages[l].split("\n");
+        for (let i = 0; i < MAP_LENGTH; i++) {
+            const tiles = parts[i + 1].split(" ");
+            for (let j = 0; j < MAP_LENGTH; j++) {
+                board[i][j] = new Tile(parseInt(tiles[j]));
+            }
+        }
+        seed = 0;
     }
 }
 function handleMouseDown(_event) {

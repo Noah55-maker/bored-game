@@ -24,8 +24,10 @@ const players: Player[] = [];
 const board: Tile[][] = [];
 
 const socket = new WebSocket('ws://localhost:1234/echo')
+const recievedMessages: string[] = [];
 socket.onmessage = (msg) => {
     console.log(msg);
+    recievedMessages.push(msg.data);
 };
 
 enum TileType {
@@ -398,7 +400,7 @@ function handleKeyDown(event: KeyboardEvent) {
     }
 }
 
-function handleKeyControl(event: KeyboardEvent) {
+async function handleKeyControl(event: KeyboardEvent) {
     if (event.key == "Enter") {
         nextPlayerTurn();
     }
@@ -443,6 +445,27 @@ function handleKeyControl(event: KeyboardEvent) {
 
     if (event.key == 's') {
         socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
+    }
+
+    if (event.key == 'g') {
+        const l = recievedMessages.length;
+        socket.send(`mapgen ${MAP_LENGTH}`);
+
+        while (recievedMessages.length == l) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        console.log(recievedMessages[l]);
+
+        const parts = recievedMessages[l].split("\n");
+
+        for (let i = 0; i < MAP_LENGTH; i++) {
+            const tiles = parts[i + 1].split(" ");
+            for (let j = 0; j < MAP_LENGTH; j++) {
+                board[i][j] = new Tile(parseInt(tiles[j]));
+            }
+        }
+        seed = 0
     }
 }
 
