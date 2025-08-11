@@ -19,6 +19,8 @@ import (
 	"github.com/coder/websocket"
 )
 
+var board [][]Tile
+
 func main() {
 	address := "localhost:1234"
 	http.HandleFunc("/echo", echoHandler)
@@ -52,6 +54,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		if parts[0] == "mapgen" {
 			len_str, chunk_str := parts[1], parts[2]
 			len, err := strconv.Atoi(len_str)
+			resizeBoard(len)
+
 			chunk_size, err := strconv.ParseFloat(chunk_str, 64)
 			chunk_size += rand.Float64() * .2 - .1
 			seed := rand.Float64()*1e9
@@ -80,7 +84,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 						tile = VOLCANO
 					}
 
-					response += "" + strconv.Itoa(tile) + " "
+					board[i][j].tiletype = tile
+					response += strconv.Itoa(tile) + " "
 				}
 				response += "\n"
 			}
@@ -98,5 +103,12 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			break
 		}
+	}
+}
+
+func resizeBoard(length int) {
+	board = make([][]Tile, length)
+	for i := range length {
+		board[i] = make([]Tile, length)
 	}
 }
