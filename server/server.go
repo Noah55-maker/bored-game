@@ -104,6 +104,19 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			continue
+		} else if parts[0] == "request-map" {
+			response := fmt.Sprintf("map %d %f %f\n", len(game.board), game.chunkSize, game.seed)
+			for i := range len(game.board) {
+				for j := range len(game.board) {
+					response += strconv.Itoa(game.board[i][j].tiletype) + " "
+				}
+				response += "\n"
+			}
+
+			err = c.Write(ctx, websocket.MessageText, []byte(response))
+			if err != nil {
+				break
+			}
 		}
 
 		// Echo the message back
