@@ -6,7 +6,7 @@ type Game struct {
 	board [][]Tile
 	seed, chunkSize float64
 
-	players []Player
+	players []*Player
 	playerTurn int
 }
 

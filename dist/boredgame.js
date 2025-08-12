@@ -110,6 +110,14 @@ class Player {
         }
         return this.troops[this.selectedTroopIndex];
     }
+    async addTroop(x, y) {
+        this.troops.push(new Troop(x, y));
+        const l = recievedMessages.length;
+        socket.send(`add-troop ${x} ${y}`);
+        while (recievedMessages.length == l) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+    }
 }
 function normalizedFade(x) {
     return (Math.cos(x * Math.PI) + 1) / 2;
@@ -117,7 +125,7 @@ function normalizedFade(x) {
 function drawBoardInstanced(gamePieces, time) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            if (turnHappened) {
+            if (turnHappened && players[playerTurn].troops.length != 0) {
                 const selectedTroop = players[playerTurn].selectedTroop();
                 const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
                 board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
@@ -358,9 +366,7 @@ async function handleKeyControl(event) {
         generateMap(seed, true);
     }
     if (event.key == "1") {
-        MAP_LENGTH--;
-        if (MAP_LENGTH == 0)
-            MAP_LENGTH = 1;
+        MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
         console.log('Map length = ' + MAP_LENGTH);
         generateMap(seed, false);
     }
@@ -371,9 +377,7 @@ async function handleKeyControl(event) {
         generateMap(seed, false);
     }
     if (event.key == "9") {
-        CHUNK_SIZE--;
-        if (CHUNK_SIZE == 0)
-            CHUNK_SIZE = 1;
+        CHUNK_SIZE = Math.max(1, CHUNK_SIZE - 1);
         generateMap(seed, true);
     }
     if (event.key == "0") {
@@ -434,7 +438,7 @@ function handleMouseDown(_event) {
         const selectedTroop = currentPlayer.selectedTroop();
         const troopMoved = moveTroop(selectedTroop, x - selectedTroop.x, y - selectedTroop.y);
         if (!troopMoved) {
-            currentPlayer.troops.push(new Troop(x, y));
+            currentPlayer.addTroop(x, y);
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
     }
@@ -486,7 +490,7 @@ function mouseDown_beginning(_event) {
     const tileType = board[y][x].type;
     if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN)
         return;
-    players[playerTurn].troops.push(new Troop(x, y));
+    players[playerTurn].addTroop(x, y);
     moves++;
     if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
         removeEventListener("mousedown", mouseDown_beginning);
@@ -500,9 +504,7 @@ function mouseDown_beginning(_event) {
     return;
 }
 try {
-    players.push(new Player(new Troop(0, 0)), new Player(new Troop(MAP_LENGTH - 1, MAP_LENGTH - 1))
-    // new Player(), new Player()
-    );
+    players.push(new Player(), new Player());
     addEventListener("mousedown", mouseDown_beginning);
     addEventListener("keydown", handleKeyControl);
     // populate array

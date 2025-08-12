@@ -43,7 +43,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 	var player Player
 	player.c = c
-	game.players = append(game.players, player)
+	game.players = append(game.players, &player)
+	log.Printf("There are now %d players", len(game.players))
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
@@ -117,6 +118,20 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				break
 			}
+
+			continue
+		} else if parts[0] == "add-troop" {
+			x, err := strconv.Atoi(parts[1])
+			y, err := strconv.Atoi(parts[2])
+
+			player.troops = append(player.troops, Troop{x:x,y:y,isOnShip:false})
+
+			err = c.Write(ctx, websocket.MessageText, []byte("ack"))
+			if err != nil {
+				break
+			}
+
+			continue
 		}
 
 		// Echo the message back
