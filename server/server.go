@@ -1,7 +1,7 @@
 /**
  * TODO
  * - functionality to create separate games with their own players
- * - give messages IDs to match responses with requests
+ * - assign message IDs to match responses with requests
  * - safe message parsing (avoid crashing with bad requests)
  */
 
@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 	"github.com/coder/websocket"
 )
 
-var board [][]Tile
+var game Game
 
 func main() {
 	address := "localhost:1234"
@@ -40,6 +41,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer c.Close(websocket.StatusInternalError, "the sky is falling!")
 
+	var player Player
+	player.c = c
+	game.players = append(game.players, player)
+
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 		defer cancel()
@@ -54,13 +59,16 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		if parts[0] == "mapgen" {
 			len_str, chunk_str := parts[1], parts[2]
 			len, err := strconv.Atoi(len_str)
-			resizeBoard(len)
+			game.resizeBoard(len)
 
 			chunk_size, err := strconv.ParseFloat(chunk_str, 64)
 			chunk_size += rand.Float64() * .2 - .1
-			seed := rand.Float64()*1e9
+			game.chunkSize = chunk_size
 
-			response := "map " + len_str + "x" + len_str + " \n"
+			seed := rand.Float64()*1e9
+			game.seed = seed
+
+			response := fmt.Sprintf("map %d %f %f\n", len, chunk_size, seed)
 			for i := range len {
 				for j := range len {
 					noise := perlinNoise(float64(j) / chunk_size, float64(i) / chunk_size, seed)
@@ -84,7 +92,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 						tile = VOLCANO
 					}
 
-					board[i][j].tiletype = tile
+					game.board[i][j].tiletype = tile
 					response += strconv.Itoa(tile) + " "
 				}
 				response += "\n"
@@ -103,12 +111,5 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			break
 		}
-	}
-}
-
-func resizeBoard(length int) {
-	board = make([][]Tile, length)
-	for i := range length {
-		board[i] = make([]Tile, length)
 	}
 }

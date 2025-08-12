@@ -25,3 +25,8 @@ type Tile struct {
 	tiletype int
 	modified bool
 }
+
+type Troop struct {
+	x, y int
+	isOnShip bool
+}
