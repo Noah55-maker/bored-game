@@ -23,7 +23,7 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
-const socket = new WebSocket('ws://localhost:1234/echo')
+const socket = new WebSocket('ws://localhost:1234/echo');
 const recievedMessages: string[] = [];
 socket.onmessage = (msg) => {
     console.log(msg);
@@ -502,6 +502,37 @@ async function handleKeyControl(event: KeyboardEvent) {
             }
         }
     }
+
+    if (event.key == 'f') {
+        const l = recievedMessages.length;
+        socket.send("fetch-troops");
+
+        while (recievedMessages.length == l) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+
+        const lines = recievedMessages[l].split("\n");
+        const line1 = lines[0].split(' ');
+        const [numMyTroops, numOpTroops] = [parseInt(line1[1]), parseInt(line1[2])];
+
+        players[0].troops = [];
+        players[1].troops = [];
+
+        const line2 = lines[1].split(',');
+        const line3 = lines[2].split(',');
+
+        for (let i = 0; i < numMyTroops; i++) {
+            const coord = line2[i].split(' ');
+            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+            players[0].troops.push(new Troop(x, y));
+        }
+
+        for (let i = 0; i < numOpTroops; i++) {
+            const coord = line3[i].split(' ');
+            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+            players[1].troops.push(new Troop(x, y));
+        }
+    }
 }
 
 function handleMouseDown(_event: MouseEvent) {
@@ -554,9 +585,9 @@ function playerAction() {
 }
 
 function nextPlayerTurn() {
-    playerTurn++;
-    if (playerTurn >= players.length)
-        playerTurn = 0;
+    // playerTurn++;
+    // if (playerTurn >= players.length)
+    //     playerTurn = 0;
 }
 
 function mouseDown_beginning(_event: MouseEvent) {

@@ -424,6 +424,30 @@ async function handleKeyControl(event) {
             }
         }
     }
+    if (event.key == 'f') {
+        const l = recievedMessages.length;
+        socket.send("fetch-troops");
+        while (recievedMessages.length == l) {
+            await new Promise((resolve) => setTimeout(resolve, 10));
+        }
+        const lines = recievedMessages[l].split("\n");
+        const line1 = lines[0].split(' ');
+        const [numMyTroops, numOpTroops] = [parseInt(line1[1]), parseInt(line1[2])];
+        players[0].troops = [];
+        players[1].troops = [];
+        const line2 = lines[1].split(',');
+        const line3 = lines[2].split(',');
+        for (let i = 0; i < numMyTroops; i++) {
+            const coord = line2[i].split(' ');
+            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+            players[0].troops.push(new Troop(x, y));
+        }
+        for (let i = 0; i < numOpTroops; i++) {
+            const coord = line3[i].split(' ');
+            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+            players[1].troops.push(new Troop(x, y));
+        }
+    }
 }
 function handleMouseDown(_event) {
     const currentTime = new Date().getTime() / 1000;
@@ -466,9 +490,9 @@ function playerAction() {
     }
 }
 function nextPlayerTurn() {
-    playerTurn++;
-    if (playerTurn >= players.length)
-        playerTurn = 0;
+    // playerTurn++;
+    // if (playerTurn >= players.length)
+    //     playerTurn = 0;
 }
 function mouseDown_beginning(_event) {
     const [x, y] = [pickedData[0], pickedData[1]];
