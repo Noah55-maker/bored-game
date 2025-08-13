@@ -132,6 +132,20 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			continue
+		} else if parts[0] == "move-troop" {
+			troopIndex, err := strconv.Atoi(parts[1])
+			x, err := strconv.Atoi(parts[2])
+			y, err := strconv.Atoi(parts[3])
+
+			player.troops[troopIndex].x = x
+			player.troops[troopIndex].y = y
+
+			err = c.Write(ctx, websocket.MessageText, []byte("ack"))
+			if err != nil {
+				break
+			}
+
+			continue
 		} else if parts[0] == "fetch-troops" {
 			yourTroops := len(player.troops)
 			otherTroops := 0

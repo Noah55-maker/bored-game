@@ -192,18 +192,13 @@ function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
             const fade = board[y][x].fade;
             addPiece(terrain, x, y, fade);
 
-            if (terrain === VOLCANO)
-                addPiece(LAVA, x, y);
+            if (terrain === VOLCANO) addPiece(LAVA, x, y);
 
             if (board[y][x].modified) {
-                if (terrain === COAST)
-                    addPiece(PORT, x, y, fade);
-                else if (terrain === PLAINS)
-                    addPiece(CASTLE, x, y, fade);
-                else if (terrain === FOREST)
-                    addPiece(WOOD, x, y);
-                else if (terrain === MOUNTAIN)
-                    addPiece(STONE, x, y);
+                if (terrain === COAST) addPiece(PORT, x, y, fade);
+                else if (terrain === PLAINS) addPiece(CASTLE, x, y, fade);
+                else if (terrain === FOREST) addPiece(WOOD, x, y);
+                else if (terrain === MOUNTAIN) addPiece(STONE, x, y);
             }
         }
     }
@@ -354,6 +349,7 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     troop.move(deltaX, deltaY);
+    socket.send(`move-troop ${players[0].selectedTroopIndex} ${troop.x} ${troop.y}`);
     return true;
 }
 

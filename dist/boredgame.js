@@ -303,6 +303,7 @@ function moveTroop(troop, deltaX, deltaY) {
         }
     }
     troop.move(deltaX, deltaY);
+    socket.send(`move-troop ${players[0].selectedTroopIndex} ${troop.x} ${troop.y}`);
     return true;
 }
 /**
