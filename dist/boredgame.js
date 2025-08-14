@@ -17,7 +17,7 @@ let turnHappened = false;
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
-const socket = new WebSocket('ws://localhost:1234/echo');
+const socket = new WebSocket('ws://localhost:10000/echo');
 const recievedMessages = [];
 socket.onmessage = (msg) => {
     console.log(msg);
@@ -260,7 +260,7 @@ function troopCanMove(troop, deltaX, deltaY) {
         return false;
     }
     if (newTile == WATER || newTile == OCEAN) {
-        return (troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified));
+        return troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified);
     }
     // check for other troops
     for (let i = 0; i < players.length; i++) {
