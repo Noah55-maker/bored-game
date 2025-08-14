@@ -448,6 +448,8 @@ async function handleKeyControl(event) {
     }
 }
 function handleMouseDown(_event) {
+    if (pickedData[2] == 0)
+        return;
     const currentTime = new Date().getTime() / 1000;
     if (currentTime - lastActionTime < 1)
         return;
@@ -484,6 +486,8 @@ function playerAction() {
     turnHappened = true;
 }
 function mouseDown_beginning(_event) {
+    if (pickedData[2] == 0)
+        return;
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     // if there is a troop on this tile, don't do anything
