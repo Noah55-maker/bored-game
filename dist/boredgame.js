@@ -354,9 +354,6 @@ function handleKeyDown(event) {
     }
 }
 async function handleKeyControl(event) {
-    if (event.key == "Enter") {
-        nextPlayerTurn();
-    }
     if (event.key == "t") {
         players[playerTurn].selectedTroopIndex++;
         if (players[playerTurn].selectedTroopIndex >= players[playerTurn].troops.length)
@@ -485,15 +482,6 @@ function handleMouseDown(_event) {
 function playerAction() {
     moves++;
     turnHappened = true;
-    if (moves === 3) {
-        moves = 0;
-        nextPlayerTurn();
-    }
-}
-function nextPlayerTurn() {
-    // playerTurn++;
-    // if (playerTurn >= players.length)
-    //     playerTurn = 0;
 }
 function mouseDown_beginning(_event) {
     const [x, y] = [pickedData[0], pickedData[1]];
@@ -517,16 +505,13 @@ function mouseDown_beginning(_event) {
         return;
     players[playerTurn].addTroop(x, y);
     moves++;
-    if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
+    if (moves === NUMBER_OF_STARTING_TROOPS) {
         removeEventListener("mousedown", mouseDown_beginning);
         addEventListener("mousedown", handleMouseDown);
         addEventListener("keydown", handleKeyDown);
         moves = 0;
         console.log('end of beginning stage');
-        // return;
     }
-    nextPlayerTurn();
-    return;
 }
 try {
     players.push(new Player(), new Player());

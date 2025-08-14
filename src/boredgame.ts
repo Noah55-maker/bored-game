@@ -408,10 +408,6 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 async function handleKeyControl(event: KeyboardEvent) {
-    if (event.key == "Enter") {
-        nextPlayerTurn();
-    }
-
     if (event.key == "t") {
         players[playerTurn].selectedTroopIndex++;
         if (players[playerTurn].selectedTroopIndex >= players[playerTurn].troops.length)
@@ -489,7 +485,6 @@ async function handleKeyControl(event: KeyboardEvent) {
 
         [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
-
 
         for (let i = 0; i < MAP_LENGTH; i++) {
             const tiles = parts[i + 1].split(" ");
@@ -574,16 +569,6 @@ function handleMouseDown(_event: MouseEvent) {
 function playerAction() {
     moves++;
     turnHappened = true;
-    if (moves === 3) {
-        moves = 0;
-        nextPlayerTurn();
-    }
-}
-
-function nextPlayerTurn() {
-    // playerTurn++;
-    // if (playerTurn >= players.length)
-    //     playerTurn = 0;
 }
 
 function mouseDown_beginning(_event: MouseEvent) {
@@ -615,17 +600,14 @@ function mouseDown_beginning(_event: MouseEvent) {
     players[playerTurn].addTroop(x, y);
 
     moves++;
-    if (moves === players.length * NUMBER_OF_STARTING_TROOPS) {
+    if (moves === NUMBER_OF_STARTING_TROOPS) {
         removeEventListener("mousedown", mouseDown_beginning);
         addEventListener("mousedown", handleMouseDown);
         addEventListener("keydown", handleKeyDown);
 
         moves = 0;
         console.log('end of beginning stage');
-        // return;
     }
-    nextPlayerTurn();
-    return;
 }
 
 try {
