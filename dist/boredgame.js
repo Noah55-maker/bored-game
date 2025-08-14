@@ -206,11 +206,11 @@ function drawBoardInstanced(gamePieces, time) {
         }
     });
 }
-function generateMap(seed, changeChunkSize) {
+function generateMap(seed, updateChunkSize) {
     console.log("seed = " + seed);
     turnHappened = true;
     // we don't want every Nth tile to be the same every time
-    if (changeChunkSize)
+    if (updateChunkSize)
         fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
@@ -263,13 +263,8 @@ function troopCanMove(troop, deltaX, deltaY) {
         return troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified);
     }
     // check for other troops
-    for (let i = 0; i < players.length; i++) {
-        const p = players[i];
-        for (let j = 0; j < p.troops.length; j++) {
-            if (p.troops[j].x == newX && p.troops[j].y == newY)
-                return false;
-        }
-    }
+    if (tileHasTroop(newX, newY)[0] != -1)
+        return false;
     return true;
 }
 /**
@@ -387,7 +382,7 @@ async function handleKeyControl(event) {
     }
     if (event.key == 'g') {
         const l = recievedMessages.length;
-        socket.send(`mapgen ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        socket.send(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
@@ -428,22 +423,17 @@ async function handleKeyControl(event) {
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const lines = recievedMessages[l].split("\n");
+        const lines = recievedMessages[l].split('\n');
         const line1 = lines[0].split(' ');
-        const [numMyTroops, numOpTroops] = [parseInt(line1[1]), parseInt(line1[2])];
-        players[0].troops = [];
-        players[1].troops = [];
-        const line2 = lines[1].split(',');
-        const line3 = lines[2].split(',');
-        for (let i = 0; i < numMyTroops; i++) {
-            const coord = line2[i].split(' ');
-            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
-            players[0].troops.push(new Troop(x, y));
-        }
-        for (let i = 0; i < numOpTroops; i++) {
-            const coord = line3[i].split(' ');
-            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
-            players[1].troops.push(new Troop(x, y));
+        for (let i = 0; i < lines.length - 1; i++) {
+            players[i].troops = [];
+            const parts = lines[i + 1].split(',');
+            const numTroops = parseInt(line1[i + 1]);
+            for (let j = 0; j < numTroops; j++) {
+                const coord = parts[j].split(' ');
+                const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+                players[i].troops.push(new Troop(x, y));
+            }
         }
     }
 }

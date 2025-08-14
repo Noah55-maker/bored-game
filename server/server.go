@@ -57,7 +57,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received '%v'", string(message))
 
 		parts := strings.Split(string(message), " ")
-		if parts[0] == "mapgen" {
+		if parts[0] == "generate-map" {
 			len_str, chunk_str := parts[1], parts[2]
 			len, err := strconv.Atoi(len_str)
 			game.resizeBoard(len)

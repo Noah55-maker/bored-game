@@ -147,7 +147,6 @@ const fragmentShaderSourceInstanced = `#version 300 es
 
     void main() {
         float light = dot(u_lightDirection, v_normal) * .5 + .5;
-
         outputColor = vec4(u_diffuse.rgb * light * v_brightness, 1.0);
     }
 `;
@@ -428,7 +427,7 @@ export async function init(drawBoardInstanced) {
         numFrames++;
         const endTime = Date.now();
         if (endTime - lastTime >= 1000) {
-            console.log(numFrames + " FPS");
+            // console.log(numFrames + " FPS");
             lastTime = endTime;
             numFrames = 0;
         }
