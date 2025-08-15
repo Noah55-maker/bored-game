@@ -62,17 +62,14 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			len, err := strconv.Atoi(len_str)
 			game.resizeBoard(len)
 
-			chunk_size, err := strconv.ParseFloat(chunk_str, 64)
-			chunk_size += rand.Float64() * .2 - .1
-			game.chunkSize = chunk_size
+			game.chunkSize, err = strconv.ParseFloat(chunk_str, 64)
+			game.chunkSize += rand.Float64() * .2 - .1
 
-			seed := rand.Float64()*1e9
-			game.seed = seed
+			game.seed = rand.Float64()*1e9
 
-			response := fmt.Sprintf("map %d %f %f\n", len, chunk_size, seed)
 			for i := range len {
 				for j := range len {
-					noise := perlinNoise(float64(j) / chunk_size, float64(i) / chunk_size, seed)
+					noise := perlinNoise(float64(j) / game.chunkSize, float64(i) / game.chunkSize, game.seed)
 					var tile int
 
 					if (noise < .25) {
@@ -94,11 +91,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 					}
 
 					game.board[i][j].tiletype = tile
-					response += strconv.Itoa(tile) + " "
 				}
-				response += "\n"
 			}
 
+			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
 			err = c.Write(ctx, websocket.MessageText, []byte(response))
 			if err != nil {
 				break
@@ -107,13 +103,6 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		} else if parts[0] == "request-map" {
 			response := fmt.Sprintf("map %d %f %f\n", len(game.board), game.chunkSize, game.seed)
-			for i := range len(game.board) {
-				for j := range len(game.board) {
-					response += strconv.Itoa(game.board[i][j].tiletype) + " "
-				}
-				response += "\n"
-			}
-
 			err = c.Write(ctx, websocket.MessageText, []byte(response))
 			if err != nil {
 				break

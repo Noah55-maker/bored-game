@@ -17,6 +17,7 @@ let turnHappened = false;
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
+// const socket = new WebSocket('ws://bored-game-as81.onrender.com/echo');
 const socket = new WebSocket('ws://localhost:10000/echo');
 const recievedMessages = [];
 socket.onmessage = (msg) => {
@@ -386,16 +387,10 @@ async function handleKeyControl(event) {
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const parts = recievedMessages[l].split("\n");
-        const line1 = parts[0].split(' ');
-        [fudgedChunkSize, seed] = [parseFloat(line1[2]), parseFloat(line1[3])];
+        const parts = recievedMessages[l].split(' ');
+        [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
-        for (let i = 0; i < MAP_LENGTH; i++) {
-            const tiles = parts[i + 1].split(" ");
-            for (let j = 0; j < MAP_LENGTH; j++) {
-                board[i][j] = new Tile(parseInt(tiles[j]));
-            }
-        }
+        generateMap(seed, false);
     }
     if (event.key == 'r') {
         const l = recievedMessages.length;
@@ -403,19 +398,13 @@ async function handleKeyControl(event) {
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const parts = recievedMessages[l].split("\n");
-        const line1 = parts[0].split(' ');
-        for (let i = 0; i < (parseInt(line1[1]) - MAP_LENGTH); i++) {
+        const parts = recievedMessages[l].split(' ');
+        for (let i = 0; i < (parseInt(parts[1]) - MAP_LENGTH); i++) {
             board.push([]);
         }
-        [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
+        [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
-        for (let i = 0; i < MAP_LENGTH; i++) {
-            const tiles = parts[i + 1].split(" ");
-            for (let j = 0; j < MAP_LENGTH; j++) {
-                board[i][j] = new Tile(parseInt(tiles[j]));
-            }
-        }
+        generateMap(seed, false);
     }
     if (event.key == 'f') {
         const l = recievedMessages.length;
