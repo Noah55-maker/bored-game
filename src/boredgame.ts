@@ -188,8 +188,8 @@ function normalizedFade(x: number) {
 function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            if (turnHappened && players[playerTurn].troops.length != 0) {
-                const selectedTroop = players[playerTurn].selectedTroop();
+            if (turnHappened && players[0].troops.length != 0) {
+                const selectedTroop = players[0].selectedTroop();
                 const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
                 board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
                                   || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
@@ -244,7 +244,7 @@ function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
         const soldierIndex = (i == 0 ? SOLDIER_BLUE : SOLDIER_RED);
 
         for (let j = 0; j < p.troops.length; j++) {
-            const isSelected = (playerTurn === i && players[playerTurn].selectedTroopIndex === j);
+            const isSelected = (i === 0 && players[0].selectedTroopIndex === j);
             const troop = p.troops[j];
             let [x, y] = [troop.x, troop.y];
 
@@ -403,7 +403,7 @@ function handleKeyDown(event: KeyboardEvent) {
     if (currentTime - lastActionTime < 1) return;
     lastActionTime = currentTime;
 
-    const focusedTroop = players[playerTurn].selectedTroop();
+    const focusedTroop = players[0].selectedTroop();
 
     // move troop
     if (event.key == "ArrowLeft") {
@@ -435,9 +435,11 @@ function handleKeyDown(event: KeyboardEvent) {
 
 async function handleKeyControl(event: KeyboardEvent) {
     if (event.key == "t") {
-        players[playerTurn].selectedTroopIndex++;
-        if (players[playerTurn].selectedTroopIndex >= players[playerTurn].troops.length)
-            players[playerTurn].selectedTroopIndex = 0;
+        players[0].selectedTroopIndex++;
+        if (players[0].selectedTroopIndex >= players[0].troops.length)
+            players[0].selectedTroopIndex = 0;
+
+        turnHappened = true;
     }
 
     if (event.key == "m") {
@@ -468,10 +470,6 @@ async function handleKeyControl(event: KeyboardEvent) {
         generateMap(seed, true);
     }
 
-    if (event.key == "s") {
-        socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
-    }
-
     if (event.key == "g") {
         const l = recievedMessages.length;
         socket.send(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
@@ -496,7 +494,7 @@ function handleMouseDown(_event: MouseEvent) {
 
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
-    const currentPlayer = players[playerTurn];
+    const currentPlayer = players[0];
 
     // if there's no troop, try to move currently selected troop, otherwise add a troop
     if (res[0] === -1) {
@@ -509,7 +507,7 @@ function handleMouseDown(_event: MouseEvent) {
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
     }
-    else if (res[0] != playerTurn) {
+    else if (res[0] != 0) {
         return;
     }
 
@@ -541,9 +539,7 @@ function mouseDown_beginning(_event: MouseEvent) {
     if (res[0] !== -1) return;
 
     // check for nearby opponent troops
-    for (let i = 0; i < players.length; i++) {
-        if (playerTurn === i) continue;
-
+    for (let i = 1; i < players.length; i++) {
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
 
@@ -557,7 +553,7 @@ function mouseDown_beginning(_event: MouseEvent) {
     if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN)
         return;
 
-    players[playerTurn].addTroop(x, y);
+    players[0].addTroop(x, y);
 
     moves++;
     if (moves === NUMBER_OF_STARTING_TROOPS) {
@@ -576,7 +572,7 @@ try {
     addEventListener("mousedown", mouseDown_beginning);
     addEventListener("keydown", handleKeyControl);
 
-    // populate array
+    // initialize board
     for (let i = 0; i < MAP_LENGTH; i++) board.push([]);
 
     seed = Math.random() * 1e9;
