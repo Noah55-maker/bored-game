@@ -97,17 +97,19 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
-			err = c.Write(ctx, websocket.MessageText, []byte(response))
-			if err != nil {
-				break
-			}
-
 			for p, connected := range game.players {
 				if !connected {
 					continue
 				}
 
-				p.c.Write(ctx, websocket.MessageText, []byte("broadcast\n" + response))
+				if p == &player {
+					err = p.c.Write(ctx, websocket.MessageText, []byte(response))
+				} else {
+					err = p.c.Write(ctx, websocket.MessageText, []byte("broadcast\n" + response))
+				}
+				if err != nil {
+					log.Println("error in sending message")
+				}
 			}
 
 			continue
