@@ -23,6 +23,8 @@ import (
 var game Game
 
 func main() {
+	game.players = make(map[*Player]bool)
+
 	address := "0.0.0.0:10000"
 	http.HandleFunc("/echo", echoHandler)
 	log.Printf("Starting server, go to http://%s/ to try it out!", address)
@@ -43,7 +45,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 	var player Player
 	player.c = c
-	game.players = append(game.players, &player)
+	game.players[&player] = true
 	log.Printf("There are now %d players", len(game.players))
 
 	for {
@@ -100,12 +102,12 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			continue
-		} else if parts[0] == "request-map" {
-			response := fmt.Sprintf("map %d %f %f\n", len(game.board), game.chunkSize, game.seed)
-			err = c.Write(ctx, websocket.MessageText, []byte(response))
-			if err != nil {
-				break
+			for p, connected := range game.players {
+				if !connected {
+					continue
+				}
+
+				p.c.Write(ctx, websocket.MessageText, []byte("broadcast\n" + response))
 			}
 
 			continue
@@ -138,9 +140,9 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		} else if parts[0] == "fetch-troops" {
 			yourTroops := len(player.troops)
 			otherTroops := 0
-			for i := range len(game.players) {
-				if game.players[i] != &player {
-					otherTroops += len(game.players[i].troops)
+			for p := range game.players {
+				if p != &player {
+					otherTroops += len(p.troops)
 				}
 			}
 
@@ -151,7 +153,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			response += "\n"
 
-			for _, p := range game.players {
+			for p := range game.players {
 				if p == &player {
 					continue
 				}
@@ -175,4 +177,6 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+
+	game.players[&player] = false
 }

@@ -23,6 +23,22 @@ const recievedMessages = [];
 socket.onmessage = (msg) => {
     console.log(msg);
     recievedMessages.push(msg.data);
+    const lines = msg.data.split("\n");
+    if (!lines[0].startsWith("broadcast")) {
+        return;
+    }
+    const line1 = lines[1].split(" ");
+    switch (line1[0]) {
+        case "map": {
+            for (let i = 0; i < parseInt(line1[1]) - MAP_LENGTH; i++) {
+                board.push([]);
+            }
+            [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
+            CHUNK_SIZE = Math.round(fudgedChunkSize);
+            generateMap(seed, false);
+            break;
+        }
+    }
 };
 var TileType;
 (function (TileType) {
@@ -389,20 +405,6 @@ async function handleKeyControl(event) {
         }
         const parts = recievedMessages[l].split(" ");
         [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
-        CHUNK_SIZE = Math.round(fudgedChunkSize);
-        generateMap(seed, false);
-    }
-    if (event.key == "r") {
-        const l = recievedMessages.length;
-        socket.send("request-map");
-        while (recievedMessages.length == l) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-        const parts = recievedMessages[l].split(" ");
-        for (let i = 0; i < parseInt(parts[1]) - MAP_LENGTH; i++) {
-            board.push([]);
-        }
-        [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
         generateMap(seed, false);
     }
