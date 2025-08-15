@@ -65,28 +65,28 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			game.chunkSize, err = strconv.ParseFloat(chunk_str, 64)
 			game.chunkSize += rand.Float64() * .2 - .1
 
-			game.seed = rand.Float64()*1e9
+			game.seed = rand.Float64() * 1e9
 
 			for i := range len {
 				for j := range len {
 					noise := perlinNoise(float64(j) / game.chunkSize, float64(i) / game.chunkSize, game.seed)
 					var tile int
 
-					if (noise < .25) {
+					if noise < .25 {
 						tile = OCEAN
-					} else if (noise < .4) {
-			     		tile = WATER
-				    } else if (noise < .45) {
-				     	tile = COAST
-				    } else if (noise < .52) {
-				     	tile = PLAINS
-				    } else if (noise < .62) {
-				     	tile = GRASS
-				    } else if (noise < .72) {
-				     	tile = FOREST
-				    } else if (noise < .80) {
-				     	tile = MOUNTAIN
-				    } else {
+					} else if noise < .4 {
+						tile = WATER
+					} else if noise < .45 {
+						tile = COAST
+					} else if noise < .52 {
+						tile = PLAINS
+					} else if noise < .62 {
+						tile = GRASS
+					} else if noise < .72 {
+						tile = FOREST
+					} else if noise < .8 {
+						tile = MOUNTAIN
+					} else {
 						tile = VOLCANO
 					}
 
@@ -113,7 +113,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			x, err := strconv.Atoi(parts[1])
 			y, err := strconv.Atoi(parts[2])
 
-			player.troops = append(player.troops, Troop{x:x,y:y,isOnShip:false})
+			player.troops = append(player.troops, Troop{x: x, y: y, isOnShip: false})
 
 			err = c.Write(ctx, websocket.MessageText, []byte("ack"))
 			if err != nil {
