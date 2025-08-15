@@ -122,6 +122,12 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
+			for p := range game.players {
+				if p != &player {
+					game.updateWithTroops(p, ctx)
+				}
+			}
+
 			continue
 		} else if parts[0] == "move-troop" {
 			troopIndex, err := strconv.Atoi(parts[1])
@@ -136,36 +142,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			continue
-		} else if parts[0] == "fetch-troops" {
-			yourTroops := len(player.troops)
-			otherTroops := 0
 			for p := range game.players {
 				if p != &player {
-					otherTroops += len(p.troops)
+					game.updateWithTroops(p, ctx)
 				}
-			}
-
-			response := fmt.Sprintf("troops %d %d\n", yourTroops, otherTroops)
-
-			for i := range len(player.troops) {
-				response += fmt.Sprintf("%d %d,", player.troops[i].x, player.troops[i].y)
-			}
-			response += "\n"
-
-			for p := range game.players {
-				if p == &player {
-					continue
-				}
-
-				for _, t := range p.troops {
-					response += fmt.Sprintf("%d %d,", t.x, t.y)
-				}
-			}
-
-			err = c.Write(ctx, websocket.MessageText, []byte(response))
-			if err != nil {
-				break
 			}
 
 			continue

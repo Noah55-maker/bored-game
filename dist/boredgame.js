@@ -38,6 +38,19 @@ socket.onmessage = (msg) => {
             generateMap(seed, false);
             break;
         }
+        case "troops": {
+            for (let i = 0; i < lines.length - 2; i++) {
+                players[i].troops = [];
+                const parts = lines[i + 2].split(",");
+                const numTroops = parseInt(line1[i + 1]);
+                for (let j = 0; j < numTroops; j++) {
+                    const coord = parts[j].split(" ");
+                    const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+                    players[i].troops.push(new Troop(x, y));
+                }
+            }
+            break;
+        }
     }
 };
 var TileType;
@@ -407,25 +420,6 @@ async function handleKeyControl(event) {
         [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
         generateMap(seed, false);
-    }
-    if (event.key == "f") {
-        const l = recievedMessages.length;
-        socket.send("fetch-troops");
-        while (recievedMessages.length == l) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-        const lines = recievedMessages[l].split("\n");
-        const line1 = lines[0].split(" ");
-        for (let i = 0; i < lines.length - 1; i++) {
-            players[i].troops = [];
-            const parts = lines[i + 1].split(",");
-            const numTroops = parseInt(line1[i + 1]);
-            for (let j = 0; j < numTroops; j++) {
-                const coord = parts[j].split(" ");
-                const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
-                players[i].troops.push(new Troop(x, y));
-            }
-        }
     }
 }
 function handleMouseDown(_event) {
