@@ -18,7 +18,7 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
 // const socket = new WebSocket('ws://bored-game-as81.onrender.com/echo');
-const socket = new WebSocket('ws://localhost:10000/echo');
+const socket = new WebSocket("ws://localhost:10000/echo");
 const recievedMessages = [];
 socket.onmessage = (msg) => {
     console.log(msg);
@@ -83,7 +83,7 @@ class Tile {
         this.modified = false;
         this.fade = false;
         if (type === FOREST || type === MOUNTAIN) {
-            if (Math.random() < .3)
+            if (Math.random() < 0.3)
                 this.modified = true;
         }
     }
@@ -212,7 +212,7 @@ function generateMap(seed, updateChunkSize) {
     turnHappened = true;
     // we don't want every Nth tile to be the same every time
     if (updateChunkSize)
-        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
+        fudgedChunkSize = CHUNK_SIZE + Math.random() * 0.2 - 0.1;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
@@ -228,7 +228,7 @@ function generateMap(seed, updateChunkSize) {
                 board[i][j] = new Tile(GRASS);
             else if (noise < .72)
                 board[i][j] = new Tile(FOREST);
-            else if (noise < .80)
+            else if (noise < .8)
                 board[i][j] = new Tile(MOUNTAIN);
             else
                 board[i][j] = new Tile(VOLCANO);
@@ -361,12 +361,12 @@ async function handleKeyControl(event) {
     }
     if (event.key == "1") {
         MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
-        console.log('Map length = ' + MAP_LENGTH);
+        console.log("Map length = " + MAP_LENGTH);
         generateMap(seed, false);
     }
     if (event.key == "2") {
         MAP_LENGTH++;
-        console.log('Map length = ' + MAP_LENGTH);
+        console.log("Map length = " + MAP_LENGTH);
         board.push([]);
         generateMap(seed, false);
     }
@@ -378,48 +378,48 @@ async function handleKeyControl(event) {
         CHUNK_SIZE++;
         generateMap(seed, true);
     }
-    if (event.key == 's') {
+    if (event.key == "s") {
         socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
     }
-    if (event.key == 'g') {
+    if (event.key == "g") {
         const l = recievedMessages.length;
         socket.send(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const parts = recievedMessages[l].split(' ');
+        const parts = recievedMessages[l].split(" ");
         [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
         generateMap(seed, false);
     }
-    if (event.key == 'r') {
+    if (event.key == "r") {
         const l = recievedMessages.length;
         socket.send("request-map");
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const parts = recievedMessages[l].split(' ');
-        for (let i = 0; i < (parseInt(parts[1]) - MAP_LENGTH); i++) {
+        const parts = recievedMessages[l].split(" ");
+        for (let i = 0; i < parseInt(parts[1]) - MAP_LENGTH; i++) {
             board.push([]);
         }
         [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(parts[1]), parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
         generateMap(seed, false);
     }
-    if (event.key == 'f') {
+    if (event.key == "f") {
         const l = recievedMessages.length;
         socket.send("fetch-troops");
         while (recievedMessages.length == l) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
-        const lines = recievedMessages[l].split('\n');
-        const line1 = lines[0].split(' ');
+        const lines = recievedMessages[l].split("\n");
+        const line1 = lines[0].split(" ");
         for (let i = 0; i < lines.length - 1; i++) {
             players[i].troops = [];
-            const parts = lines[i + 1].split(',');
+            const parts = lines[i + 1].split(",");
             const numTroops = parseInt(line1[i + 1]);
             for (let j = 0; j < numTroops; j++) {
-                const coord = parts[j].split(' ');
+                const coord = parts[j].split(" ");
                 const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
                 players[i].troops.push(new Troop(x, y));
             }
@@ -493,7 +493,7 @@ function mouseDown_beginning(_event) {
         addEventListener("mousedown", handleMouseDown);
         addEventListener("keydown", handleKeyDown);
         moves = 0;
-        console.log('end of beginning stage');
+        console.log("end of beginning stage");
     }
 }
 try {

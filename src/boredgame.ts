@@ -24,7 +24,7 @@ const players: Player[] = [];
 const board: Tile[][] = [];
 
 // const socket = new WebSocket('ws://bored-game-as81.onrender.com/echo');
-const socket = new WebSocket('ws://localhost:10000/echo');
+const socket = new WebSocket("ws://localhost:10000/echo");
 const recievedMessages: string[] = [];
 socket.onmessage = (msg) => {
     console.log(msg);
@@ -99,8 +99,7 @@ class Tile {
         this.fade = false;
 
         if (type === FOREST || type === MOUNTAIN) {
-            if (Math.random() < .3)
-                this.modified = true;
+            if (Math.random() < 0.3) this.modified = true;
         }
     }
 
@@ -248,7 +247,7 @@ function generateMap(seed: number, updateChunkSize: boolean) {
 
     // we don't want every Nth tile to be the same every time
     if (updateChunkSize)
-        fudgedChunkSize = CHUNK_SIZE + Math.random() * .2 - .1;
+        fudgedChunkSize = CHUNK_SIZE + Math.random() * 0.2 - 0.1;
 
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
@@ -259,7 +258,7 @@ function generateMap(seed: number, updateChunkSize: boolean) {
             else if (noise < .52) board[i][j] = new Tile(PLAINS);
             else if (noise < .62) board[i][j] = new Tile(GRASS);
             else if (noise < .72) board[i][j] = new Tile(FOREST);
-            else if (noise < .80) board[i][j] = new Tile(MOUNTAIN);
+            else if (noise < .8) board[i][j] = new Tile(MOUNTAIN);
             else board[i][j] = new Tile(VOLCANO);
         }
     }
@@ -282,8 +281,7 @@ function generateMap(seed: number, updateChunkSize: boolean) {
 }
 
 function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
-    if (Math.abs(deltaX) + Math.abs(deltaY) !== 1)
-        return false;
+    if (Math.abs(deltaX) + Math.abs(deltaY) !== 1) return false;
 
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
 
@@ -303,8 +301,7 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     // check for other troops
-    if (tileHasTroop(newX, newY)[0] != -1)
-        return false;
+    if (tileHasTroop(newX, newY)[0] != -1) return false;
 
     return true;
 }
@@ -317,8 +314,7 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
  * @returns true if troop was moved
  */
 function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
-    if (!troopCanMove(troop, deltaX, deltaY))
-        return false;
+    if (!troopCanMove(troop, deltaX, deltaY)) return false;
 
     const [newX, newY] = [troop.x + deltaX, troop.y + deltaY];
 
@@ -369,8 +365,7 @@ function tileHasTroop(tileX: number, tileY: number) {
 
 function handleKeyDown(event: KeyboardEvent) {
     const currentTime = new Date().getTime() / 1000;
-    if (currentTime - lastActionTime < 1)
-        return;
+    if (currentTime - lastActionTime < 1) return;
     lastActionTime = currentTime;
 
     const focusedTroop = players[playerTurn].selectedTroop();
@@ -417,13 +412,13 @@ async function handleKeyControl(event: KeyboardEvent) {
 
     if (event.key == "1") {
         MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
-        console.log('Map length = ' + MAP_LENGTH);
+        console.log("Map length = " + MAP_LENGTH);
         generateMap(seed, false);
     }
 
     if (event.key == "2") {
         MAP_LENGTH++;
-        console.log('Map length = ' + MAP_LENGTH);
+        console.log("Map length = " + MAP_LENGTH);
         board.push([]);
         generateMap(seed, false);
     }
@@ -438,11 +433,11 @@ async function handleKeyControl(event: KeyboardEvent) {
         generateMap(seed, true);
     }
 
-    if (event.key == 's') {
+    if (event.key == "s") {
         socket.send(`hello server!\nMap len = ${MAP_LENGTH}\nChunk size = ${CHUNK_SIZE}\nSeed = ${seed}`);
     }
 
-    if (event.key == 'g') {
+    if (event.key == "g") {
         const l = recievedMessages.length;
         socket.send(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
 
@@ -450,13 +445,13 @@ async function handleKeyControl(event: KeyboardEvent) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
 
-        const parts = recievedMessages[l].split(' ');
+        const parts = recievedMessages[l].split(" ");
         [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
         CHUNK_SIZE = Math.round(fudgedChunkSize);
         generateMap(seed, false);
     }
 
-    if (event.key == 'r') {
+    if (event.key == "r") {
         const l = recievedMessages.length;
         socket.send("request-map");
 
@@ -464,9 +459,9 @@ async function handleKeyControl(event: KeyboardEvent) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
 
-        const parts = recievedMessages[l].split(' ');
+        const parts = recievedMessages[l].split(" ");
 
-        for (let i = 0; i < (parseInt(parts[1]) - MAP_LENGTH); i++) {
+        for (let i = 0; i < parseInt(parts[1]) - MAP_LENGTH; i++) {
             board.push([]);
         }
 
@@ -475,7 +470,7 @@ async function handleKeyControl(event: KeyboardEvent) {
         generateMap(seed, false);
     }
 
-    if (event.key == 'f') {
+    if (event.key == "f") {
         const l = recievedMessages.length;
         socket.send("fetch-troops");
 
@@ -483,16 +478,16 @@ async function handleKeyControl(event: KeyboardEvent) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
 
-        const lines = recievedMessages[l].split('\n');
-        const line1 = lines[0].split(' ');
+        const lines = recievedMessages[l].split("\n");
+        const line1 = lines[0].split(" ");
 
         for (let i = 0; i < lines.length - 1; i++) {
             players[i].troops = [];
-            const parts = lines[i + 1].split(',');
+            const parts = lines[i + 1].split(",");
             const numTroops = parseInt(line1[i + 1]);
 
             for (let j = 0; j < numTroops; j++) {
-                const coord = parts[j].split(' ');
+                const coord = parts[j].split(" ");
                 const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
                 players[i].troops.push(new Troop(x, y));
             }
@@ -501,12 +496,10 @@ async function handleKeyControl(event: KeyboardEvent) {
 }
 
 function handleMouseDown(_event: MouseEvent) {
-    if (pickedData[2] == 0)
-        return;
+    if (pickedData[2] == 0) return;
 
     const currentTime = new Date().getTime() / 1000;
-    if (currentTime - lastActionTime < 1)
-        return;
+    if (currentTime - lastActionTime < 1) return;
     lastActionTime = currentTime;
 
     const [x, y] = [pickedData[0], pickedData[1]];
@@ -524,7 +517,6 @@ function handleMouseDown(_event: MouseEvent) {
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
     }
-
     else if (res[0] != playerTurn) {
         return;
     }
@@ -533,8 +525,7 @@ function handleMouseDown(_event: MouseEvent) {
     else { // if (res[0] == playerTurn)
         if (currentPlayer.selectedTroopIndex == res[1]) {
             board[y][x].modified = !board[y][x].modified;
-        }
-        else {
+        } else {
             currentPlayer.selectedTroopIndex = res[1];
             return;
         }
@@ -549,20 +540,17 @@ function playerAction() {
 }
 
 function mouseDown_beginning(_event: MouseEvent) {
-    if (pickedData[2] == 0)
-        return;
+    if (pickedData[2] == 0) return;
 
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
 
     // if there is a troop on this tile, don't do anything
-    if (res[0] !== -1)
-        return;
+    if (res[0] !== -1) return;
 
     // check for nearby opponent troops
     for (let i = 0; i < players.length; i++) {
-        if (playerTurn === i)
-            continue;
+        if (playerTurn === i) continue;
 
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
@@ -586,21 +574,18 @@ function mouseDown_beginning(_event: MouseEvent) {
         addEventListener("keydown", handleKeyDown);
 
         moves = 0;
-        console.log('end of beginning stage');
+        console.log("end of beginning stage");
     }
 }
 
 try {
-    players.push(
-        new Player(), new Player()
-    );
+    players.push(new Player(), new Player());
 
     addEventListener("mousedown", mouseDown_beginning);
     addEventListener("keydown", handleKeyControl);
 
     // populate array
-    for (let i = 0; i < MAP_LENGTH; i++)
-        board.push([]);
+    for (let i = 0; i < MAP_LENGTH; i++) board.push([]);
 
     seed = Math.random() * 1e9;
     generateMap(seed, true);

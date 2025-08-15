@@ -12,7 +12,7 @@ import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
 import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
 const MM_TO_IN = 1 / 25.4;
-const lightDirection = normalize([.5, .7, 1]);
+const lightDirection = normalize([0.5, 0.7, 1]);
 let gl;
 let canvas;
 let aspectRatio;
@@ -31,8 +31,7 @@ function resizeCanvasToDisplaySize(canvas) {
     const displayWidth = canvas.clientWidth;
     const displayHeight = canvas.clientHeight;
     // Check if the canvas is not the same size.
-    const needResize = canvas.width !== displayWidth ||
-        canvas.height !== displayHeight;
+    const needResize = canvas.width !== displayWidth || canvas.height !== displayHeight;
     if (needResize) {
         // Make the canvas the same size
         canvas.width = displayWidth;
@@ -63,7 +62,7 @@ export class GamePiece {
         positionMatrix = m4.translate(positionMatrix, 0, 0.005 * Math.sin(time), 0);
         const matrixData = new Float32Array(numInstances * 16);
         for (let i = 0; i < numInstances; i++) {
-            let specificMatrix = m4.translate(positionMatrix, MM_TO_IN * (xPositions[i] - ((MAP_LENGTH - 1) / 2)), 0, MM_TO_IN * (yPositions[i] - ((MAP_LENGTH - 1) / 2)));
+            let specificMatrix = m4.translate(positionMatrix, MM_TO_IN * (xPositions[i] - (MAP_LENGTH - 1) / 2), 0, MM_TO_IN * (yPositions[i] - (MAP_LENGTH - 1) / 2));
             specificMatrix = m4.yRotate(specificMatrix, rotation[i]);
             for (let j = 0; j < 16; j++) {
                 matrixData[i * 16 + j] = specificMatrix[j];
@@ -82,10 +81,10 @@ export class GamePiece {
         if (isPicking) {
             const idArray = new Float32Array(4 * numInstances);
             for (let i = 0; i < numInstances; i++) {
-                idArray[i * 4] = (xPositions[i] & 0xFF) / 0xFF;
-                idArray[i * 4 + 1] = (yPositions[i] & 0xFF) / 0xFF;
-                idArray[i * 4 + 2] = (1 & 0xFF) / 0xFF;
-                // idArray[i*4+3] = (0 & 0xFF) / 0xFF;
+                idArray[i * 4] = (xPositions[i] & 0xff) / 0xff;
+                idArray[i * 4 + 1] = (yPositions[i] & 0xff) / 0xff;
+                idArray[i * 4 + 2] = (1 & 0xff) / 0xff;
+                // idArray[i * 4 + 3] = (0 & 0xff) / 0xff;
             }
             const idBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, idBuffer);
@@ -97,7 +96,7 @@ export class GamePiece {
         else {
             gl.uniform3fv(diffuseUniformInstanced, this.diffuse);
             const brightnessArray = new Float32Array(numInstances);
-            const fadeMultiplier = .95 + Math.abs(.3 * Math.sin(2 * time));
+            const fadeMultiplier = 0.95 + Math.abs(0.3 * Math.sin(2 * time));
             for (let i = 0; i < numInstances; i++) {
                 if (fade[i] || (pickedData[0] == xPositions[i] && pickedData[1] == yPositions[i] && pickedData[2] == 1))
                     brightnessArray[i] = fadeMultiplier;
@@ -176,16 +175,16 @@ const pickingFS = `#version 300 es
     }
 `;
 function getContext(canvas) {
-    const gl = canvas.getContext('webgl2');
+    const gl = canvas.getContext("webgl2");
     if (!gl) {
-        throw new Error('WebGL2 is unsupported - try another browser or device');
+        throw new Error("WebGL2 is unsupported - try another browser or device");
     }
     return gl;
 }
 function createStaticVertexBuffer(gl, data) {
     const buffer = gl.createBuffer();
     if (!buffer) {
-        throw new Error('Failed to allocate buffer');
+        throw new Error("Failed to allocate buffer");
     }
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
@@ -209,7 +208,7 @@ function getAttribLocation(program, name) {
 function createInterleavedBufferVao(gl, interleavedBuffer, positionAttribLocation, normalAttribLocation) {
     const vao = gl.createVertexArray();
     if (!vao) {
-        throw new Error('Failed to allocate VAO for two buffers');
+        throw new Error("Failed to allocate VAO for two buffers");
     }
     gl.bindVertexArray(vao);
     gl.enableVertexAttribArray(positionAttribLocation);
@@ -227,7 +226,7 @@ function createInterleavedBufferVao(gl, interleavedBuffer, positionAttribLocatio
 function createBufferVao(gl, buffer, positionAttribLocation) {
     const vao = gl.createVertexArray();
     if (!vao) {
-        throw new Error('Failed to allocate VAO for two buffers');
+        throw new Error("Failed to allocate VAO for two buffers");
     }
     gl.bindVertexArray(vao);
     gl.enableVertexAttribArray(positionAttribLocation);
@@ -241,16 +240,16 @@ function normalize(arr) {
     let squareSum = 0;
     for (let i = 0; i < arr.length; i++)
         squareSum += arr[i] * arr[i];
-    let magnitude = Math.sqrt(squareSum);
+    const magnitude = Math.sqrt(squareSum);
     const normalized = [];
     for (let i = 0; i < arr.length; i++)
         normalized.push(arr[i] / magnitude);
     return normalized;
 }
 function getCanvas(document) {
-    const canvas = document.getElementById('canvas');
+    const canvas = document.getElementById("canvas");
     if (!canvas || !(canvas instanceof HTMLCanvasElement)) {
-        throw new Error('Failed to get gl canvas reference');
+        throw new Error("Failed to get gl canvas reference");
     }
     return canvas;
 }
@@ -287,7 +286,7 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib, vertPos
         // hacky implementation that works only for these models??
         // the material names(?) include the diffuse values that I need
         const material = assetModels[1].faces[0].material;
-        const diffuseStrings = material.split('_');
+        const diffuseStrings = material.split("_");
         const diffuse = [
             parseFloat(diffuseStrings[0]),
             parseFloat(diffuseStrings[1]),
@@ -304,7 +303,7 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
     // compile vertex shader
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
     if (vertexShader === null) {
-        throw new Error('Could not allocate vertex shader');
+        throw new Error("Could not allocate vertex shader");
     }
     gl.shaderSource(vertexShader, vertexShaderSource);
     gl.compileShader(vertexShader);
@@ -315,7 +314,7 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
     // compile fragment shader
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     if (fragmentShader === null) {
-        throw new Error('Could not allocate fragment shader');
+        throw new Error("Could not allocate fragment shader");
     }
     gl.shaderSource(fragmentShader, fragmentShaderSource);
     gl.compileShader(fragmentShader);
@@ -326,7 +325,7 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
     // link shaders
     const program = gl.createProgram();
     if (program === null) {
-        throw new Error('Could not allocate program');
+        throw new Error("Could not allocate program");
     }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
@@ -340,7 +339,7 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
 export async function init(drawBoardInstanced) {
     canvas = getCanvas(document);
     gl = getContext(canvas);
-    gl.canvas.addEventListener('mousemove', (e) => {
+    gl.canvas.addEventListener("mousemove", (e) => {
         const rect = canvas.getBoundingClientRect();
         mouseX = e.clientX - rect.left;
         mouseY = e.clientY - rect.top;
@@ -403,7 +402,7 @@ export async function init(drawBoardInstanced) {
         drawBoardInstanced(gamePieces, time);
         // Read pixel under cursor ***************************************
         if (!(gl.canvas instanceof HTMLCanvasElement)) {
-            throw new Error('gl.canvas is not HTMLCanvasElement');
+            throw new Error("gl.canvas is not HTMLCanvasElement");
         }
         const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
         const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
@@ -419,7 +418,7 @@ export async function init(drawBoardInstanced) {
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         // sky blue background
-        gl.clearColor(.53, .81, .92, 1.0);
+        gl.clearColor(0.53, 0.81, 0.92, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.useProgram(instancedProgram);
         gl.uniform3fv(lightDirectionUniformInstanced, lightDirection);
