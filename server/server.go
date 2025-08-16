@@ -48,6 +48,14 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	game.players[&player] = true
 	log.Printf("There are now %d players", len(game.players))
 
+	if len(game.players) > 1 {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+		defer cancel()
+
+		game.updateWithMap(&player, ctx)
+		game.updateWithTroops(&player, ctx)
+	}
+
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 		defer cancel()
@@ -61,10 +69,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		parts := strings.Split(string(message), " ")
 		if parts[0] == "generate-map" {
 			len_str, chunk_str := parts[1], parts[2]
-			len, err := strconv.Atoi(len_str)
+			len, _ := strconv.Atoi(len_str)
 			game.resizeBoard(len)
 
-			game.chunkSize, err = strconv.ParseFloat(chunk_str, 64)
+			game.chunkSize, _ = strconv.ParseFloat(chunk_str, 64)
 			game.chunkSize += rand.Float64() * .2 - .1
 
 			game.seed = rand.Float64() * 1e9
@@ -97,18 +105,11 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
-			for p, connected := range game.players {
-				if !connected {
-					continue
-				}
+			c.Write(ctx, websocket.MessageText, []byte(response))
 
-				if p == &player {
-					err = p.c.Write(ctx, websocket.MessageText, []byte(response))
-				} else {
-					err = p.c.Write(ctx, websocket.MessageText, []byte("broadcast\n" + response))
-				}
-				if err != nil {
-					log.Println("error in sending message")
+			for p, connected := range game.players {
+				if p != &player && connected {
+					game.updateWithMap(p, ctx)
 				}
 			}
 
@@ -124,8 +125,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for p := range game.players {
-				if p != &player {
+			for p, connected := range game.players {
+				if p != &player && connected {
 					game.updateWithTroops(p, ctx)
 				}
 			}
@@ -144,8 +145,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for p := range game.players {
-				if p != &player {
+			for p, connected := range game.players {
+				if p != &player && connected {
 					game.updateWithTroops(p, ctx)
 				}
 			}

@@ -22,6 +22,11 @@ func (g *Game) resizeBoard(length int) {
 	}
 }
 
+func (g *Game) updateWithMap(player *Player, ctx context.Context) error {
+	response := fmt.Sprintf("broadcast\nmap %d %f %f\n", len(game.board), game.chunkSize, game.seed)
+	return player.c.Write(ctx, websocket.MessageText, []byte(response))
+}
+
 func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 	yourTroops := len(player.troops)
 	otherTroops := 0
