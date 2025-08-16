@@ -24,6 +24,9 @@ var game Game
 
 func main() {
 	game.players = make(map[*Player]bool)
+	game.chunkSize = 5
+	game.seed = rand.Float64() * 1e9
+	game.generateMap(19)
 
 	address := "0.0.0.0:10000"
 	http.HandleFunc("/echo", echoHandler)
@@ -48,13 +51,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	game.players[&player] = true
 	log.Printf("There are now %d players", len(game.players))
 
-	if len(game.players) > 1 {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
-		defer cancel()
-
-		game.updateWithMap(&player, ctx)
-		game.updateWithTroops(&player, ctx)
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
+	defer cancel()
+	game.updateWithMap(&player, ctx)
+	game.updateWithTroops(&player, ctx)
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
