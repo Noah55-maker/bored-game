@@ -7,9 +7,8 @@ import { init, pickedData } from "./renderer.js";
 import perlinNoise from "./noise.js";
 export let MAP_LENGTH = 19;
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
-let CHUNK_SIZE = 5;
+let CHUNK_SIZE = 5.03;
 let seed;
-let fudgedChunkSize;
 let playerTurn = 0;
 let moves = 0;
 let lastActionTime = 0;
@@ -33,9 +32,8 @@ socket.onmessage = (msg) => {
             for (let i = 0; i < parseInt(line1[1]) - MAP_LENGTH; i++) {
                 board.push([]);
             }
-            [MAP_LENGTH, fudgedChunkSize, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
-            CHUNK_SIZE = Math.round(fudgedChunkSize);
-            generateMap(seed, false);
+            [MAP_LENGTH, CHUNK_SIZE, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
+            generateMap();
             break;
         }
         case "troops": {
@@ -236,15 +234,12 @@ function drawBoardInstanced(gamePieces, time) {
         }
     });
 }
-function generateMap(seed, updateChunkSize) {
+function generateMap() {
     console.log("seed = " + seed);
     turnHappened = true;
-    // we don't want every Nth tile to be the same every time
-    if (updateChunkSize)
-        fudgedChunkSize = CHUNK_SIZE + Math.random() * 0.2 - 0.1;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
-            const noise = perlinNoise(j / fudgedChunkSize, i / fudgedChunkSize, seed);
+            const noise = perlinNoise(j / CHUNK_SIZE, i / CHUNK_SIZE, seed);
             if (noise < .25)
                 board[i][j] = new Tile(OCEAN);
             else if (noise < .4)
@@ -387,26 +382,30 @@ async function handleKeyControl(event) {
     }
     if (event.key == "m") {
         seed = Math.random() * 1e9;
-        generateMap(seed, true);
+        generateMap();
     }
     if (event.key == "1") {
         MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
         console.log("Map length = " + MAP_LENGTH);
-        generateMap(seed, false);
+        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        generateMap();
     }
     if (event.key == "2") {
         MAP_LENGTH++;
         console.log("Map length = " + MAP_LENGTH);
         board.push([]);
-        generateMap(seed, false);
+        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        generateMap();
     }
     if (event.key == "9") {
-        CHUNK_SIZE = Math.max(1, CHUNK_SIZE - 1);
-        generateMap(seed, true);
+        CHUNK_SIZE = Math.max(1, CHUNK_SIZE - (0.1 + Math.random() * 0.02));
+        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        generateMap();
     }
     if (event.key == "0") {
-        CHUNK_SIZE++;
-        generateMap(seed, true);
+        CHUNK_SIZE += (0.1 + Math.random() * 0.02);
+        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        generateMap();
     }
     if (event.key == "g") {
         const l = recievedMessages.length;
@@ -415,9 +414,8 @@ async function handleKeyControl(event) {
             await new Promise((resolve) => setTimeout(resolve, 10));
         }
         const parts = recievedMessages[l].split(" ");
-        [fudgedChunkSize, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
-        CHUNK_SIZE = Math.round(fudgedChunkSize);
-        generateMap(seed, false);
+        [CHUNK_SIZE, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
+        generateMap();
     }
 }
 function handleMouseDown(_event) {
@@ -496,7 +494,7 @@ try {
     for (let i = 0; i < MAP_LENGTH; i++)
         board.push([]);
     seed = Math.random() * 1e9;
-    generateMap(seed, true);
+    generateMap();
     init(drawBoardInstanced);
 }
 catch (e) {

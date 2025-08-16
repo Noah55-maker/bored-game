@@ -68,41 +68,11 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 		parts := strings.Split(string(message), " ")
 		if parts[0] == "generate-map" {
-			len_str, chunk_str := parts[1], parts[2]
-			len, _ := strconv.Atoi(len_str)
-			game.resizeBoard(len)
-
-			game.chunkSize, _ = strconv.ParseFloat(chunk_str, 64)
-			game.chunkSize += rand.Float64() * .2 - .1
-
+			len, _ := strconv.Atoi(parts[1])
+			game.chunkSize, _ = strconv.ParseFloat(parts[2], 64)
 			game.seed = rand.Float64() * 1e9
 
-			for i := range len {
-				for j := range len {
-					noise := perlinNoise(float64(j) / game.chunkSize, float64(i) / game.chunkSize, game.seed)
-					var tile int
-
-					if noise < .25 {
-						tile = OCEAN
-					} else if noise < .4 {
-						tile = WATER
-					} else if noise < .45 {
-						tile = COAST
-					} else if noise < .52 {
-						tile = PLAINS
-					} else if noise < .62 {
-						tile = GRASS
-					} else if noise < .72 {
-						tile = FOREST
-					} else if noise < .8 {
-						tile = MOUNTAIN
-					} else {
-						tile = VOLCANO
-					}
-
-					game.board[i][j].tiletype = tile
-				}
-			}
+			game.generateMap(len)
 
 			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
 			c.Write(ctx, websocket.MessageText, []byte(response))
@@ -114,6 +84,17 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			continue
+		} else if parts[0] == "update-map" {
+			len, _ := strconv.Atoi(parts[1])
+			game.chunkSize, _ = strconv.ParseFloat(parts[2], 64)
+
+			game.generateMap(len)
+
+			for p, connected := range game.players {
+				if p != &player && connected {
+					game.updateWithMap(p, ctx)
+				}
+			}
 		} else if parts[0] == "add-troop" {
 			x, err := strconv.Atoi(parts[1])
 			y, err := strconv.Atoi(parts[2])

@@ -22,6 +22,35 @@ func (g *Game) resizeBoard(length int) {
 	}
 }
 
+func (g *Game) generateMap(length int) {
+	g.resizeBoard(length)
+
+	for i := range length {
+		for j := range length {
+			noise := perlinNoise(float64(j) / game.chunkSize, float64(i) / game.chunkSize, game.seed)
+			tile := &game.board[i][j].tiletype
+
+			if noise < .25 {
+				*tile = OCEAN
+			} else if noise < .4 {
+				*tile = WATER
+			} else if noise < .45 {
+				*tile = COAST
+			} else if noise < .52 {
+				*tile = PLAINS
+			} else if noise < .62 {
+				*tile = GRASS
+			} else if noise < .72 {
+				*tile = FOREST
+			} else if noise < .8 {
+				*tile = MOUNTAIN
+			} else {
+				*tile = VOLCANO
+			}
+		}
+	}
+}
+
 func (g *Game) updateWithMap(player *Player, ctx context.Context) error {
 	response := fmt.Sprintf("broadcast\nmap %d %f %f\n", len(game.board), game.chunkSize, game.seed)
 	return player.c.Write(ctx, websocket.MessageText, []byte(response))
