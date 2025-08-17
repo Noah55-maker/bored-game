@@ -49,6 +49,10 @@ socket.onmessage = (msg) => {
             }
             break;
         }
+        case "modify-tile": {
+            const [x, y] = [parseInt(line1[1]), parseInt(line1[2])];
+            board[y][x].modified = !board[y][x].modified;
+        }
     }
 };
 var TileType;
@@ -105,14 +109,10 @@ class Tile {
     type;
     modified;
     fade;
-    constructor(type) {
+    constructor(type, modified = false) {
         this.type = type;
-        this.modified = false;
+        this.modified = modified;
         this.fade = false;
-        if (type === FOREST || type === MOUNTAIN) {
-            if (Math.random() < 0.3)
-                this.modified = true;
-        }
     }
     isLandTile() {
         return (this.type !== COAST && this.type !== WATER && this.type !== OCEAN);
@@ -368,6 +368,7 @@ function handleKeyDown(event) {
     // modify tile
     else if (event.key == " ") {
         board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
+        socket.send(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`);
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
         playerAction();
@@ -428,6 +429,7 @@ function handleMouseDown(_event) {
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
     const currentPlayer = players[0];
+    turnHappened = true;
     // if there's no troop, try to move currently selected troop, otherwise add a troop
     if (res[0] === -1) {
         const selectedTroop = currentPlayer.selectedTroop();
@@ -444,6 +446,7 @@ function handleMouseDown(_event) {
     else { // if (res[0] == playerTurn)
         if (currentPlayer.selectedTroopIndex == res[1]) {
             board[y][x].modified = !board[y][x].modified;
+            socket.send(`modify-tile ${x} ${y}`);
         }
         else {
             currentPlayer.selectedTroopIndex = res[1];

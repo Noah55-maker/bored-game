@@ -2,7 +2,7 @@
  * TODO
  * - functionality to create separate games with their own players
  * - assign message IDs to match responses with requests
- * - safe message parsing (avoid crashing with bad requests)
+ * - safe message parsing (avoid crashing with malformed requests)
  */
 
 package main
@@ -133,6 +133,23 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			continue
+		} else if parts[0] == "modify-tile" {
+			x, _ := strconv.Atoi(parts[1])
+			y, _ := strconv.Atoi(parts[2])
+
+			game.board[y][x].modified = !game.board[y][x].modified
+
+			err = c.Write(ctx, websocket.MessageText, []byte("ack"))
+			if err != nil {
+				break
+			}
+
+			for p, connected := range game.players {
+				if p != &player && connected {
+					response := fmt.Sprintf("broadcast\nmodify-tile %d %d", x, y)
+					p.c.Write(ctx, websocket.MessageText, []byte(response))
+				}
+			}
 		}
 
 		// Echo the message back
