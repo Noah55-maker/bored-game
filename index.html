@@ -19,11 +19,26 @@
             width: 100%;
             display: block;
         }
+
+        #overlay {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-family: monospace;
+            padding: 1em;
+            border-radius: 1em;
+            border: 2px solid red;
+        }
     </style>
 </head>
 
 <body>
     <canvas id="canvas"></canvas>
+    <div id="overlay">
+        <div>FPS: <span id="fps"></span></div>
+    </div>
     <script type="module" src="dist/boredgame.js"></script>
 </body>
 

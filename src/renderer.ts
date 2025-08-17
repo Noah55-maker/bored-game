@@ -431,6 +431,13 @@ export async function init(drawBoardInstanced: Function) {
     canvas = getCanvas(document);
     gl = getContext(canvas);
 
+    const fpsElement = document.querySelector("#fps");
+    const fpsNode = document.createTextNode("");
+    if (fpsElement == null) {
+        throw new Error("fps element not found");
+    }
+    fpsElement.appendChild(fpsNode);
+
     gl.canvas.addEventListener("mousemove", (e: any) => {
         const rect = canvas.getBoundingClientRect();
         mouseX = e.clientX - rect.left;
@@ -543,7 +550,7 @@ export async function init(drawBoardInstanced: Function) {
         numFrames++;
         const endTime = Date.now();
         if (endTime - lastTime >= 1000) {
-            // console.log(numFrames + " FPS");
+            fpsNode.nodeValue = `${numFrames}`;
             lastTime = endTime;
             numFrames = 0;
         }
