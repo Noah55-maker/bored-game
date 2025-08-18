@@ -64,6 +64,18 @@ socket.onmessage = (msg) => {
         case "modify-tile": {
             const [x, y] = [parseInt(line1[1]), parseInt(line1[2])];
             board[y][x].modified = !board[y][x].modified;
+            break;
+        }
+        case "modified-tiles": {
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    board[i][j].modified = lines[i + 2][j] == 'm';
+                }
+            }
+            break;
+        }
+        default: {
+            console.log(`unrecognized broadcast command received: ${line1[0]}`);
         }
     }
 };
@@ -275,20 +287,28 @@ function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
 }
 
 function generateMap() {
-    console.log("seed = " + seed);
     turnHappened = true;
 
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / CHUNK_SIZE, i / CHUNK_SIZE, seed);
-            if (noise < .25) board[i][j] = new Tile(OCEAN);
-            else if (noise < .4) board[i][j] = new Tile(WATER);
-            else if (noise < .45) board[i][j] = new Tile(COAST);
-            else if (noise < .52) board[i][j] = new Tile(PLAINS);
-            else if (noise < .62) board[i][j] = new Tile(GRASS);
-            else if (noise < .72) board[i][j] = new Tile(FOREST);
-            else if (noise < .8) board[i][j] = new Tile(MOUNTAIN);
-            else board[i][j] = new Tile(VOLCANO);
+            let type: TileType;
+
+            if (noise < .25) type = OCEAN;
+            else if (noise < .4) type = WATER;
+            else if (noise < .45) type = COAST;
+            else if (noise < .52) type = PLAINS;
+            else if (noise < .62) type = GRASS;
+            else if (noise < .72) type = FOREST;
+            else if (noise < .8) type = MOUNTAIN;
+            else type = VOLCANO;
+
+            if (!board[i][j]) {
+                board[i][j] = new Tile(type);
+            }
+            else {
+                board[i][j].type = type;
+            }
         }
     }
 
@@ -304,7 +324,7 @@ function generateMap() {
                 j < MAP_LENGTH-1 && board[i][j+1].isLandTile())
                 continue;
 
-            board[i][j] = new Tile(WATER);
+            board[i][j].type = WATER;
         }
     }
 }
@@ -420,7 +440,7 @@ function handleKeyDown(event: KeyboardEvent) {
     // modify tile
     else if (event.key == " ") {
         board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
-        socket.send(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`)
+        socket.send(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`);
 
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
             focusedTroop.isOnShip = !focusedTroop.isOnShip;

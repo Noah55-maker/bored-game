@@ -52,6 +52,18 @@ socket.onmessage = (msg) => {
         case "modify-tile": {
             const [x, y] = [parseInt(line1[1]), parseInt(line1[2])];
             board[y][x].modified = !board[y][x].modified;
+            break;
+        }
+        case "modified-tiles": {
+            for (let i = 0; i < MAP_LENGTH; i++) {
+                for (let j = 0; j < MAP_LENGTH; j++) {
+                    board[i][j].modified = lines[i + 2][j] == 'm';
+                }
+            }
+            break;
+        }
+        default: {
+            console.log(`unrecognized broadcast command received: ${line1[0]}`);
         }
     }
 };
@@ -235,27 +247,33 @@ function drawBoardInstanced(gamePieces, time) {
     });
 }
 function generateMap() {
-    console.log("seed = " + seed);
     turnHappened = true;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             const noise = perlinNoise(j / CHUNK_SIZE, i / CHUNK_SIZE, seed);
+            let type;
             if (noise < .25)
-                board[i][j] = new Tile(OCEAN);
+                type = OCEAN;
             else if (noise < .4)
-                board[i][j] = new Tile(WATER);
+                type = WATER;
             else if (noise < .45)
-                board[i][j] = new Tile(COAST);
+                type = COAST;
             else if (noise < .52)
-                board[i][j] = new Tile(PLAINS);
+                type = PLAINS;
             else if (noise < .62)
-                board[i][j] = new Tile(GRASS);
+                type = GRASS;
             else if (noise < .72)
-                board[i][j] = new Tile(FOREST);
+                type = FOREST;
             else if (noise < .8)
-                board[i][j] = new Tile(MOUNTAIN);
+                type = MOUNTAIN;
             else
-                board[i][j] = new Tile(VOLCANO);
+                type = VOLCANO;
+            if (!board[i][j]) {
+                board[i][j] = new Tile(type);
+            }
+            else {
+                board[i][j].type = type;
+            }
         }
     }
     // coast should be adjacent to a land tile
@@ -268,7 +286,7 @@ function generateMap() {
                 j > 0 && board[i][j - 1].isLandTile() ||
                 j < MAP_LENGTH - 1 && board[i][j + 1].isLandTile())
                 continue;
-            board[i][j] = new Tile(WATER);
+            board[i][j].type = WATER;
         }
     }
 }

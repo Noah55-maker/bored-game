@@ -56,6 +56,19 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	game.updateWithMap(&player, ctx)
 	game.updateWithTroops(&player, ctx)
 
+	response := "broadcast\nmodified-tiles\n"
+	for i := range game.board {
+		for j := range game.board[i] {
+			if game.board[i][j].modified {
+				response += "m"
+			} else {
+				response += "."
+			}
+		}
+		response += "\n"
+	}
+	c.Write(ctx, websocket.MessageText, []byte(response))
+
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
 		defer cancel()
