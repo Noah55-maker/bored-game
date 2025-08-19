@@ -1,6 +1,5 @@
 /** TODO
  * -------
- * Update import code for assets, currently strange implementation
  * improve picking (optimization, etc)
  * Optimize (combine) matrix code in GamePiece.draw()
  * Add settings to configure effects
@@ -283,8 +282,8 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib, vertPos
         const assetVao = createInterleavedBufferVao(gl, dataBuffer, vertexPosAttrib, vertexNormAttrib);
         const pickingDataBuffer = createStaticVertexBuffer(gl, new Float32Array(vertexData));
         const pickingVao = createBufferVao(gl, pickingDataBuffer, vertPosPickingAttrib);
-        // hacky implementation that works only for these models??
-        // the material names(?) include the diffuse values that I need
+        // hacky implementation that works only for these models
+        // the material names include the diffuse values that I need
         const material = assetModels[1].faces[0].material;
         const diffuseStrings = material.split("_");
         const diffuse = [
@@ -295,8 +294,7 @@ async function importModel(assetName, vertexPosAttrib, vertexNormAttrib, vertPos
         return new GamePiece(assetVao, pickingVao, interleavedData.length / 6, diffuse);
     }
     catch (e) {
-        const errMessage = `Failed to import model ${assetName}: ${e}`;
-        throw new Error(errMessage);
+        throw new Error(`Failed to import model ${assetName}: ${e}`);
     }
 }
 function compileProgram(vertexShaderSource, fragmentShaderSource) {
@@ -412,13 +410,7 @@ export async function init(drawBoardInstanced) {
         }
         const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
         const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
-        gl.readPixels(pixelX, // x
-        pixelY, // y
-        1, // width
-        1, // height
-        gl.RGBA, // format
-        gl.UNSIGNED_BYTE, // type
-        pickedData); // typed array to hold result
+        gl.readPixels(pixelX, pixelY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pickedData);
         // Draw to canvas ************************************************
         isPicking = false;
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);

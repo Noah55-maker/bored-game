@@ -1,6 +1,5 @@
 /** TODO
  * -------
- * Update import code for assets, currently strange implementation
  * improve picking (optimization, etc)
  * Optimize (combine) matrix code in GamePiece.draw()
  * Add settings to configure effects
@@ -369,8 +368,8 @@ async function importModel(assetName: string, vertexPosAttrib: number, vertexNor
         const pickingDataBuffer = createStaticVertexBuffer(gl, new Float32Array(vertexData));
         const pickingVao = createBufferVao(gl, pickingDataBuffer, vertPosPickingAttrib);
 
-        // hacky implementation that works only for these models??
-        // the material names(?) include the diffuse values that I need
+        // hacky implementation that works only for these models
+        // the material names include the diffuse values that I need
         const material = assetModels[1].faces[0].material;
         const diffuseStrings = material.split("_");
         const diffuse = [
@@ -381,8 +380,7 @@ async function importModel(assetName: string, vertexPosAttrib: number, vertexNor
 
         return new GamePiece(assetVao, pickingVao, interleavedData.length / 6, diffuse);
     } catch (e) {
-        const errMessage = `Failed to import model ${assetName}: ${e}`;
-        throw new Error(errMessage);
+        throw new Error(`Failed to import model ${assetName}: ${e}`);
     }
 }
 
@@ -470,9 +468,7 @@ export async function init(drawBoardInstanced: Function) {
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
         // define size and format of level 0
         const level = 0;
-        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA,
-                        width, height, 0,
-                        gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
         gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
         gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
@@ -525,14 +521,7 @@ export async function init(drawBoardInstanced: Function) {
         }
         const pixelX = mouseX * gl.canvas.width / gl.canvas.clientWidth;
         const pixelY = gl.canvas.height - mouseY * gl.canvas.height / gl.canvas.clientHeight - 1;
-        gl.readPixels(
-            pixelX,            // x
-            pixelY,            // y
-            1,                 // width
-            1,                 // height
-            gl.RGBA,           // format
-            gl.UNSIGNED_BYTE,  // type
-            pickedData);       // typed array to hold result
+        gl.readPixels(pixelX, pixelY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pickedData);
 
         // Draw to canvas ************************************************
         isPicking = false;
