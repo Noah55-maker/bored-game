@@ -23,7 +23,7 @@ import (
 var game Game
 
 func main() {
-	game.players = make(map[*Player]bool)
+	game.players = make([]*Player, 0)
 	game.chunkSize = 5
 	game.seed = rand.Float64() * 1e9
 	game.generateMap(19)
@@ -47,8 +47,9 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close(websocket.StatusInternalError, "the sky is falling!")
 
 	var player Player
+	player.connected = true
 	player.c = c
-	game.players[&player] = true
+	game.players = append(game.players, &player)
 	log.Printf("There are now %d players", len(game.players))
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
@@ -90,8 +91,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
 			c.Write(ctx, websocket.MessageText, []byte(response))
 
-			for p, connected := range game.players {
-				if p != &player && connected {
+			for _, p := range game.players {
+				if p != &player && p.connected {
 					game.updateWithMap(p, ctx)
 				}
 			}
@@ -103,8 +104,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			game.generateMap(len)
 
-			for p, connected := range game.players {
-				if p != &player && connected {
+			for _, p := range game.players {
+				if p != &player && p.connected {
 					game.updateWithMap(p, ctx)
 				}
 			}
@@ -119,8 +120,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for p, connected := range game.players {
-				if p != &player && connected {
+			for _, p := range game.players {
+				if p != &player && p.connected {
 					game.updateWithTroops(p, ctx)
 				}
 			}
@@ -139,8 +140,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for p, connected := range game.players {
-				if p != &player && connected {
+			for _, p := range game.players {
+				if p != &player && p.connected {
 					game.updateWithTroops(p, ctx)
 				}
 			}
@@ -157,8 +158,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for p, connected := range game.players {
-				if p != &player && connected {
+			for _, p := range game.players {
+				if p != &player && p.connected {
 					response := fmt.Sprintf("broadcast\nmodify-tile %d %d", x, y)
 					p.c.Write(ctx, websocket.MessageText, []byte(response))
 				}
@@ -172,5 +173,5 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	game.players[&player] = false
+	player.connected = false
 }

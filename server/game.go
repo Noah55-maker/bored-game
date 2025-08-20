@@ -11,7 +11,7 @@ type Game struct {
 	board [][]Tile
 	seed, chunkSize float64
 
-	players map[*Player]bool
+	players []*Player
 	playerTurn int
 }
 
@@ -27,8 +27,8 @@ func (g *Game) generateMap(length int) {
 
 	for i := range length {
 		for j := range length {
-			noise := perlinNoise(float64(j) / game.chunkSize, float64(i) / game.chunkSize, game.seed)
-			tile := &game.board[i][j].tiletype
+			noise := perlinNoise(float64(j) / g.chunkSize, float64(i) / g.chunkSize, g.seed)
+			tile := &g.board[i][j].tiletype
 
 			if noise < .25 {
 				*tile = OCEAN
@@ -52,14 +52,14 @@ func (g *Game) generateMap(length int) {
 }
 
 func (g *Game) updateWithMap(player *Player, ctx context.Context) error {
-	response := fmt.Sprintf("broadcast\nmap %d %f %f\n", len(game.board), game.chunkSize, game.seed)
+	response := fmt.Sprintf("broadcast\nmap %d %f %f\n", len(g.board), g.chunkSize, g.seed)
 	return player.c.Write(ctx, websocket.MessageText, []byte(response))
 }
 
 func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 	yourTroops := len(player.troops)
 	otherTroops := 0
-	for p := range game.players {
+	for _, p := range g.players {
 		if p != player {
 			otherTroops += len(p.troops)
 		}
@@ -72,7 +72,7 @@ func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 	}
 	response += "\n"
 
-	for p := range game.players {
+	for _, p := range g.players {
 		if p == player {
 			continue
 		}
@@ -87,6 +87,8 @@ func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 
 type Player struct {
 	c *websocket.Conn
+	connected bool
+
 	troops []Troop
 	wood, stone int
 }
