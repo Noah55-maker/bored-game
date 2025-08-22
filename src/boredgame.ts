@@ -644,6 +644,7 @@ try {
     seed = Math.random() * 1e9;
     generateMap();
 
+    setLaunchScreen(true);
     init(drawBoardScrolling, drawBoardInstanced);
 } catch (e) {
     console.log(`Uncaught JavaScript exception: ${e}`);

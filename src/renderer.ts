@@ -36,6 +36,16 @@ let isOnLaunchScreen: boolean = true;
 
 export function setLaunchScreen(b: boolean) {
     isOnLaunchScreen = b;
+
+    const fpsOverlay = document.getElementById("fps-overlay");
+    const fsOverlay = document.getElementById("fs-overlay");
+
+    if (fpsOverlay === null || fsOverlay === null) {
+        throw new Error("overlay is null");
+    }
+
+    fpsOverlay.style.visibility = b ? "hidden" : "visible";
+    fsOverlay.style.visibility = b ? "visible" : "hidden";
 }
 
 function resizeCanvasToDisplaySize(canvas: any) {

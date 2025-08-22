@@ -28,6 +28,13 @@ export let pickedData = new Uint8Array(4);
 let isOnLaunchScreen = true;
 export function setLaunchScreen(b) {
     isOnLaunchScreen = b;
+    const fpsOverlay = document.getElementById("fps-overlay");
+    const fsOverlay = document.getElementById("fs-overlay");
+    if (fpsOverlay === null || fsOverlay === null) {
+        throw new Error("overlay is null");
+    }
+    fpsOverlay.style.visibility = b ? "hidden" : "visible";
+    fsOverlay.style.visibility = b ? "visible" : "hidden";
 }
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.

@@ -552,6 +552,7 @@ try {
         board.push([]);
     seed = Math.random() * 1e9;
     generateMap();
+    setLaunchScreen(true);
     init(drawBoardScrolling, drawBoardInstanced);
 }
 catch (e) {
