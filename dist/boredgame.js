@@ -9,6 +9,7 @@
 import { init, pickedData, setLaunchScreen } from "./renderer.js";
 import perlinNoise from "./noise.js";
 export let MAP_LENGTH = 19;
+export let LAUNCH_SCREEN_MAP_LENGTH = 35;
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
 let CHUNK_SIZE = 5.23;
 let seed;
@@ -263,8 +264,8 @@ function drawBoardScrolling(gamePieces, time) {
         xPositions[gamePiece].push(x);
         yPositions[gamePiece].push(y);
     }
-    for (let y = 0; y < 35; y++) {
-        for (let x = 0; x < 35; x++) {
+    for (let y = 0; y < LAUNCH_SCREEN_MAP_LENGTH; y++) {
+        for (let x = 0; x < LAUNCH_SCREEN_MAP_LENGTH; x++) {
             const terrain = getNoiseTile(x + time / 5, y);
             addPiece(terrain, x, y);
             if (terrain === VOLCANO)

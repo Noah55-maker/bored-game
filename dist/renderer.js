@@ -9,7 +9,7 @@
  */
 import { m4 } from "./m4.js";
 import { OBJFile } from "./OBJFile.js";
-import { MAP_LENGTH, ASSET_NAMES } from "./boredgame.js";
+import { MAP_LENGTH, ASSET_NAMES, LAUNCH_SCREEN_MAP_LENGTH } from "./boredgame.js";
 const MM_TO_IN = 1 / 25.4;
 const lightDirection = normalize([0.5, 0.7, 1]);
 let gl;
@@ -127,10 +127,10 @@ export class GamePiece {
         if (numInstances == 0)
             return;
         gl.bindVertexArray(this.vao);
-        let positionMatrix = m4.scaleUniformly(baseMatrix, 85 / MAP_LENGTH);
+        let positionMatrix = m4.scaleUniformly(baseMatrix, 85 / LAUNCH_SCREEN_MAP_LENGTH);
         const matrixData = new Float32Array(numInstances * 16);
         for (let i = 0; i < numInstances; i++) {
-            let specificMatrix = m4.translate(positionMatrix, MM_TO_IN * (xPositions[i] - (MAP_LENGTH - 1) / 2), 0, MM_TO_IN * (yPositions[i] - (MAP_LENGTH - 1) / 2));
+            let specificMatrix = m4.translate(positionMatrix, MM_TO_IN * (xPositions[i] - (LAUNCH_SCREEN_MAP_LENGTH - 1) / 2), 0, MM_TO_IN * (yPositions[i] - (LAUNCH_SCREEN_MAP_LENGTH - 1) / 2));
             for (let j = 0; j < 16; j++) {
                 matrixData[i * 16 + j] = specificMatrix[j];
             }
