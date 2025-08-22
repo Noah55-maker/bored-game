@@ -2,12 +2,15 @@
  * -------
  * Mouse hover fade - only show for valid moves
  * Boat behavior when troop dismounts
+ * Improve launch screen
+ *  - Test out moving tiles instead of morphing tiles
+ *  - Overlay with menu options (renderer)
  */
-import { init, pickedData } from "./renderer.js";
+import { init, pickedData, setLaunchScreen } from "./renderer.js";
 import perlinNoise from "./noise.js";
 export let MAP_LENGTH = 19;
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
-let CHUNK_SIZE = 5.03;
+let CHUNK_SIZE = 5.23;
 let seed;
 let playerTurn = 0;
 let moves = 0;
@@ -246,28 +249,58 @@ function drawBoardInstanced(gamePieces, time) {
         }
     });
 }
+function drawBoardScrolling(gamePieces, time) {
+    const instanceCount = [];
+    const xPositions = [];
+    const yPositions = [];
+    for (let i = 0; i < ASSET_NAMES.length; i++) {
+        instanceCount[i] = 0;
+        xPositions.push([]);
+        yPositions.push([]);
+    }
+    function addPiece(gamePiece, x, y) {
+        instanceCount[gamePiece]++;
+        xPositions[gamePiece].push(x);
+        yPositions[gamePiece].push(y);
+    }
+    for (let y = 0; y < 35; y++) {
+        for (let x = 0; x < 35; x++) {
+            const terrain = getNoiseTile(x + time / 5, y);
+            addPiece(terrain, x, y);
+            if (terrain === VOLCANO)
+                addPiece(LAVA, x, y);
+        }
+    }
+    gamePieces.forEach((gp, index) => {
+        if (instanceCount[index] > 0) {
+            gp.drawScrolling(instanceCount[index], xPositions[index], yPositions[index], time);
+        }
+    });
+}
+function getNoiseTile(x, y) {
+    const noise = perlinNoise(x / CHUNK_SIZE, y / CHUNK_SIZE, seed);
+    if (noise < .25)
+        return OCEAN;
+    else if (noise < .4)
+        return WATER;
+    else if (noise < .45)
+        return COAST;
+    else if (noise < .52)
+        return PLAINS;
+    else if (noise < .62)
+        return GRASS;
+    else if (noise < .72)
+        return FOREST;
+    else if (noise < .8)
+        return MOUNTAIN;
+    else
+        return VOLCANO;
+}
 function generateMap() {
     turnHappened = true;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
-            const noise = perlinNoise(j / CHUNK_SIZE, i / CHUNK_SIZE, seed);
-            let type;
-            if (noise < .25)
-                type = OCEAN;
-            else if (noise < .4)
-                type = WATER;
-            else if (noise < .45)
-                type = COAST;
-            else if (noise < .52)
-                type = PLAINS;
-            else if (noise < .62)
-                type = GRASS;
-            else if (noise < .72)
-                type = FOREST;
-            else if (noise < .8)
-                type = MOUNTAIN;
-            else
-                type = VOLCANO;
+            let type = getNoiseTile(j, i);
             if (!board[i][j]) {
                 board[i][j] = new Tile(type);
             }
@@ -436,6 +469,9 @@ async function handleKeyControl(event) {
         [CHUNK_SIZE, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
         generateMap();
     }
+    if (event.key == "s") {
+        setLaunchScreen(Math.random() < 0.5);
+    }
 }
 function handleMouseDown(_event) {
     if (pickedData[2] == 0)
@@ -516,7 +552,7 @@ try {
         board.push([]);
     seed = Math.random() * 1e9;
     generateMap();
-    init(drawBoardInstanced);
+    init(drawBoardScrolling, drawBoardInstanced);
 }
 catch (e) {
     console.log(`Uncaught JavaScript exception: ${e}`);

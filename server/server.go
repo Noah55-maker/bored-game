@@ -164,6 +164,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 					p.c.Write(ctx, websocket.MessageText, []byte(response))
 				}
 			}
+
+			continue
 		}
 
 		// Echo the message back

@@ -25,6 +25,10 @@ let idAttribLoc;
 let [mouseX, mouseY] = [-1, -1];
 let isPicking;
 export let pickedData = new Uint8Array(4);
+let isOnLaunchScreen = true;
+export function setLaunchScreen(b) {
+    isOnLaunchScreen = b;
+}
 function resizeCanvasToDisplaySize(canvas) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
     const displayWidth = canvas.clientWidth;
@@ -36,7 +40,8 @@ function resizeCanvasToDisplaySize(canvas) {
         canvas.width = displayWidth;
         canvas.height = displayHeight;
         aspectRatio = canvas.clientWidth / canvas.clientHeight;
-        baseMatrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -1, 1);
+        baseMatrix = m4.orthographic(-1, 1, -1 / aspectRatio, 1 / aspectRatio, -2, 2);
+        // baseMatrix = m4.orthographic(-aspectRatio, aspectRatio, -1, 1, -2, 2);
         baseMatrix = m4.xRotate(baseMatrix, Math.PI / 6);
         baseMatrix = m4.yRotate(baseMatrix, Math.PI / 4);
     }
@@ -109,6 +114,38 @@ export class GamePiece {
             gl.vertexAttribPointer(brightnessAttribLoc, 1, gl.FLOAT, false, 0, 0);
             gl.vertexAttribDivisor(brightnessAttribLoc, 1);
         }
+        gl.drawArraysInstanced(gl.TRIANGLES, 0, this.numVerticies, numInstances);
+    }
+    drawScrolling(numInstances, xPositions, yPositions, time) {
+        if (numInstances == 0)
+            return;
+        gl.bindVertexArray(this.vao);
+        let positionMatrix = m4.scaleUniformly(baseMatrix, 85 / MAP_LENGTH);
+        const matrixData = new Float32Array(numInstances * 16);
+        for (let i = 0; i < numInstances; i++) {
+            let specificMatrix = m4.translate(positionMatrix, MM_TO_IN * (xPositions[i] - (MAP_LENGTH - 1) / 2), 0, MM_TO_IN * (yPositions[i] - (MAP_LENGTH - 1) / 2));
+            for (let j = 0; j < 16; j++) {
+                matrixData[i * 16 + j] = specificMatrix[j];
+            }
+        }
+        const matrixBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, matrixBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, matrixData, gl.STATIC_DRAW);
+        const bytesPerMatrix = 4 * 16;
+        for (let i = 0; i < 4; i++) {
+            const loc = i + matrixInstancedLoc;
+            gl.enableVertexAttribArray(loc);
+            gl.vertexAttribPointer(loc, 4, gl.FLOAT, false, bytesPerMatrix, i * 16);
+            gl.vertexAttribDivisor(loc, 1);
+        }
+        gl.uniform3fv(diffuseUniformInstanced, this.diffuse);
+        const brightnessArray = new Float32Array(numInstances).fill(1);
+        const brightnessBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, brightnessBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, brightnessArray, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(brightnessAttribLoc);
+        gl.vertexAttribPointer(brightnessAttribLoc, 1, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribDivisor(brightnessAttribLoc, 1);
         gl.drawArraysInstanced(gl.TRIANGLES, 0, this.numVerticies, numInstances);
     }
 }
@@ -334,7 +371,7 @@ function compileProgram(vertexShaderSource, fragmentShaderSource) {
     }
     return program;
 }
-export async function init(drawBoardInstanced) {
+export async function init(drawBoardScrolling, drawBoardInstanced) {
     canvas = getCanvas(document);
     gl = getContext(canvas);
     const fpsElement = document.querySelector("#fps");
@@ -393,7 +430,7 @@ export async function init(drawBoardInstanced) {
     gl.enable(gl.DEPTH_TEST);
     let lastTime = Date.now();
     let numFrames = 0;
-    async function render(time) {
+    async function renderGameBoard(time) {
         time *= 0.001; // convert to seconds
         const startTime = Date.now();
         if (resizeCanvasToDisplaySize(gl.canvas))
@@ -429,7 +466,31 @@ export async function init(drawBoardInstanced) {
             numFrames = 0;
         }
         await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - startTime)));
-        requestAnimationFrame(render);
+        requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
     }
-    requestAnimationFrame(render);
+    async function renderLaunchScreen(time) {
+        time *= 0.001; // convert to seconds
+        const startTime = Date.now();
+        if (resizeCanvasToDisplaySize(gl.canvas))
+            setFramebufferAttachmentSizes(gl.canvas.width, gl.canvas.height);
+        // Draw to canvas ************************************************
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        // sky blue background
+        gl.clearColor(0.53, 0.81, 0.92, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.useProgram(instancedProgram);
+        gl.uniform3fv(lightDirectionUniformInstanced, lightDirection);
+        drawBoardScrolling(gamePieces, time);
+        numFrames++;
+        const endTime = Date.now();
+        if (endTime - lastTime >= 1000) {
+            fpsNode.nodeValue = `${numFrames}`;
+            lastTime = endTime;
+            numFrames = 0;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - startTime)));
+        requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
+    }
+    requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
 }
