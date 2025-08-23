@@ -27,12 +27,20 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
+let localSocket = true;
 let socket = new WebSocket("ws://localhost:10000/echo");
 if (socket.readyState !== socket.OPEN) {
+    localSocket = false;
     socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
 }
 const recievedMessages: string[] = [];
 socket.onmessage = receiveMessage;
+socket.onclose = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("Reconnecting");
+    if (localSocket) socket = new WebSocket("ws://localhost:10000/echo");
+    else socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
+};
 
 const create_game_button = document.getElementById("create-game-button");
 const join_game_button = document.getElementById("join-game-button");

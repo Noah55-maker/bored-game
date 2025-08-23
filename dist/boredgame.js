@@ -21,12 +21,22 @@ let turnHappened = false;
 const NUMBER_OF_STARTING_TROOPS = 3;
 const players = [];
 const board = [];
+let localSocket = true;
 let socket = new WebSocket("ws://localhost:10000/echo");
 if (socket.readyState !== socket.OPEN) {
+    localSocket = false;
     socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
 }
 const recievedMessages = [];
 socket.onmessage = receiveMessage;
+socket.onclose = async () => {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("Reconnecting");
+    if (localSocket)
+        socket = new WebSocket("ws://localhost:10000/echo");
+    else
+        socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
+};
 const create_game_button = document.getElementById("create-game-button");
 const join_game_button = document.getElementById("join-game-button");
 if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
