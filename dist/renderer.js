@@ -25,7 +25,7 @@ let idAttribLoc;
 let [mouseX, mouseY] = [-1, -1];
 let isPicking;
 export let pickedData = new Uint8Array(4);
-let isOnLaunchScreen = true;
+export let isOnLaunchScreen = true;
 export function toggleLaunchScreen() {
     setLaunchScreen(!isOnLaunchScreen);
 }

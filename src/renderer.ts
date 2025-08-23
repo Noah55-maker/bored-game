@@ -32,7 +32,7 @@ let [mouseX, mouseY] = [-1, -1];
 let isPicking: boolean;
 export let pickedData: Uint8Array = new Uint8Array(4);
 
-let isOnLaunchScreen: boolean = true;
+export let isOnLaunchScreen: boolean = true;
 
 export function toggleLaunchScreen() {
     setLaunchScreen(!isOnLaunchScreen);

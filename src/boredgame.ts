@@ -9,7 +9,7 @@
  * Reconnect to socket if disconnected
  */
 
-import { init, GamePiece, pickedData, toggleLaunchScreen } from "./renderer.js";
+import { init, GamePiece, pickedData, toggleLaunchScreen, isOnLaunchScreen } from "./renderer.js";
 import perlinNoise from "./noise.js";
 
 export let MAP_LENGTH = 19;
@@ -28,10 +28,26 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
-// const socket = new WebSocket('ws://bored-game-as81.onrender.com/echo');
+// const socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
 const socket = new WebSocket("ws://localhost:10000/echo");
 const recievedMessages: string[] = [];
-socket.onmessage = (msg) => {
+socket.onmessage = receiveMessage;
+
+const create_game_button = document.getElementById("create-game-button");
+const join_game_button = document.getElementById("join-game-button");
+if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
+    throw new Error("Button element not found");
+}
+create_game_button.onclick = () => {
+    sendMessage("create-game");
+    toggleLaunchScreen();
+};
+join_game_button.onclick = () => {
+    sendMessage("join-game");
+    toggleLaunchScreen();
+};
+
+function receiveMessage(msg: any) {
     console.log(msg);
     recievedMessages.push(msg.data);
 
@@ -84,21 +100,23 @@ socket.onmessage = (msg) => {
             console.log(`unrecognized broadcast command received: ${line1[0]}`);
         }
     }
-};
-
-const create_game_button = document.getElementById("create-game-button");
-const join_game_button = document.getElementById("join-game-button");
-if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
-    throw new Error("Button element not found");
 }
-create_game_button.onclick = () => {
-    socket.send("create-game");
-    toggleLaunchScreen();
-};
-join_game_button.onclick = () => {
-    socket.send("join-game");
-    toggleLaunchScreen();
-};
+
+async function sendMessage(message: string, waitForResponse: boolean = false) {
+    const l = recievedMessages.length;
+    socket.send(message);
+
+    if (!waitForResponse) return "";
+
+    let i = 0;
+    while (recievedMessages.length == l && i++ < 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+
+    if (i >= 1000) throw new Error("Timeout waiting for server to respond");
+
+    return recievedMessages[l];
+}
 
 enum TileType {
     GRASS,
@@ -201,13 +219,7 @@ class Player {
 
     async addTroop(x: number, y: number) {
         this.troops.push(new Troop(x, y));
-
-        const l = recievedMessages.length;
-        socket.send(`add-troop ${x} ${y}`);
-
-        while (recievedMessages.length == l) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
-        }
+        sendMessage(`add-troop ${x} ${y}`, true);
     }
 }
 
@@ -359,12 +371,10 @@ function generateMap() {
         for (let j = 0; j < MAP_LENGTH; j++) {
             let type = getNoiseTile(j, i);
 
-            if (!board[i][j]) {
+            if (!board[i][j])
                 board[i][j] = new Tile(type);
-            }
-            else {
+            else
                 board[i][j].type = type;
-            }
         }
     }
 
@@ -446,7 +456,7 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     troop.move(deltaX, deltaY);
-    socket.send(`move-troop ${players[0].selectedTroopIndex} ${troop.x} ${troop.y}`);
+    sendMessage(`move-troop ${players[0].selectedTroopIndex} ${troop.x} ${troop.y}`, true);
     return true;
 }
 
@@ -496,7 +506,7 @@ function handleKeyDown(event: KeyboardEvent) {
     // modify tile
     else if (event.key == " ") {
         board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
-        socket.send(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`);
+        sendMessage(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`, true);
 
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
             focusedTroop.isOnShip = !focusedTroop.isOnShip;
@@ -514,15 +524,20 @@ async function handleKeyControl(event: KeyboardEvent) {
     }
 
     if (event.key == "m") {
-        seed = Math.random() * 1e9;
-        generateMap();
+        if (isOnLaunchScreen) {
+            seed = Math.random() * 1e9;
+            generateMap();
+        }
+        else {
+            sendMessage(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
+        }
     }
 
     if (event.key == "1") {
         MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
         console.log("Map length = " + MAP_LENGTH);
 
-        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
 
@@ -531,32 +546,19 @@ async function handleKeyControl(event: KeyboardEvent) {
         console.log("Map length = " + MAP_LENGTH);
         board.push([]);
 
-        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
 
     if (event.key == "9") {
         CHUNK_SIZE = Math.max(1, CHUNK_SIZE - (0.1 + Math.random() * 0.02));
-        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
+        sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
 
     if (event.key == "0") {
         CHUNK_SIZE += (0.1 + Math.random() * 0.02);
-        socket.send(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
-        generateMap();
-    }
-
-    if (event.key == "g") {
-        const l = recievedMessages.length;
-        socket.send(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`);
-
-        while (recievedMessages.length == l) {
-            await new Promise((resolve) => setTimeout(resolve, 10));
-        }
-
-        const parts = recievedMessages[l].split(" ");
-        [CHUNK_SIZE, seed] = [parseFloat(parts[2]), parseFloat(parts[3])];
+        sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
 
@@ -597,7 +599,7 @@ function handleMouseDown(_event: MouseEvent) {
     else { // if (res[0] == playerTurn)
         if (currentPlayer.selectedTroopIndex == res[1]) {
             board[y][x].modified = !board[y][x].modified;
-            socket.send(`modify-tile ${x} ${y}`);
+            sendMessage(`modify-tile ${x} ${y}`, true);
         } else {
             currentPlayer.selectedTroopIndex = res[1];
             return;

@@ -41,11 +41,11 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close(websocket.StatusInternalError, "the sky is falling!")
 
 	var player Player
-	var game *Game
-	inGame := false
-
 	player.connected = true
 	player.c = c
+
+	var game *Game
+	inGame := false
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
@@ -118,11 +118,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			game.generateMap(len)
 
-			response := fmt.Sprintf("map %d %f %f\n", len, game.chunkSize, game.seed)
-			c.Write(ctx, websocket.MessageText, []byte(response))
-
 			for _, p := range game.players {
-				if p != &player && p.connected {
+				if p.connected {
 					game.updateWithMap(p, ctx)
 				}
 			}
@@ -139,6 +136,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 					game.updateWithMap(p, ctx)
 				}
 			}
+
+			continue
 		} else if parts[0] == "add-troop" {
 			x, err := strconv.Atoi(parts[1])
 			y, err := strconv.Atoi(parts[2])
@@ -203,6 +202,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			break
 		}
+		log.Println("Unrecognized command")
 	}
 
 	player.connected = false
