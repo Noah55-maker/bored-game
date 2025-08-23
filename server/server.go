@@ -74,6 +74,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			game.seed = rand.Float64() * 1e9
 			game.generateMap(19)
 
+			c.Write(ctx, websocket.MessageText, []byte("ack"))
 			game.updateWithMap(&player, ctx)
 
 			continue
@@ -84,8 +85,9 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			inGame = true
 			game = games[len(games)-1]
-
 			game.players = append(game.players, &player)
+
+			c.Write(ctx, websocket.MessageText, []byte("ack"))
 
 			game.updateWithMap(&player, ctx)
 			game.updateWithTroops(&player, ctx)

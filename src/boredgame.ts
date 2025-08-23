@@ -38,12 +38,12 @@ const join_game_button = document.getElementById("join-game-button");
 if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
     throw new Error("Button element not found");
 }
-create_game_button.onclick = () => {
-    sendMessage("create-game");
+create_game_button.onclick = async () => {
+    await sendMessage("create-game", true);
     toggleLaunchScreen();
 };
-join_game_button.onclick = () => {
-    sendMessage("join-game");
+join_game_button.onclick = async () => {
+    await sendMessage("join-game", true);
     toggleLaunchScreen();
 };
 
@@ -103,6 +103,8 @@ function receiveMessage(msg: any) {
 }
 
 async function sendMessage(message: string, waitForResponse: boolean = false) {
+    if (socket.readyState !== socket.OPEN)
+        throw new Error("Socket is not open");
     const l = recievedMessages.length;
     socket.send(message);
 
