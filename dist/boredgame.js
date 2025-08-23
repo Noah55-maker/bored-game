@@ -73,6 +73,19 @@ socket.onmessage = (msg) => {
         }
     }
 };
+const create_game_button = document.getElementById("create-game-button");
+const join_game_button = document.getElementById("join-game-button");
+if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
+    throw new Error("Button element not found");
+}
+create_game_button.onclick = () => {
+    socket.send("create-game");
+    toggleLaunchScreen();
+};
+join_game_button.onclick = () => {
+    socket.send("join-game");
+    toggleLaunchScreen();
+};
 var TileType;
 (function (TileType) {
     TileType[TileType["GRASS"] = 0] = "GRASS";

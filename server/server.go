@@ -1,6 +1,5 @@
 /**
  * TODO
- * - functionality to create separate games with their own players
  * - assign message IDs to match responses with requests
  * - safe message parsing (avoid crashing with malformed requests)
  */
@@ -20,14 +19,9 @@ import (
 	"github.com/coder/websocket"
 )
 
-var game Game
+var games []*Game
 
 func main() {
-	game.players = make([]*Player, 0)
-	game.chunkSize = 5
-	game.seed = rand.Float64() * 1e9
-	game.generateMap(19)
-
 	address := "0.0.0.0:10000"
 	http.HandleFunc("/echo", echoHandler)
 	log.Printf("Starting server, go to http://%s/ to try it out!", address)
@@ -47,28 +41,11 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	defer c.Close(websocket.StatusInternalError, "the sky is falling!")
 
 	var player Player
+	var game *Game
+	inGame := false
+
 	player.connected = true
 	player.c = c
-	game.players = append(game.players, &player)
-	log.Printf("There are now %d players", len(game.players))
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
-	defer cancel()
-	game.updateWithMap(&player, ctx)
-	game.updateWithTroops(&player, ctx)
-
-	response := "broadcast\nmodified-tiles\n"
-	for i := range game.board {
-		for j := range game.board[i] {
-			if game.board[i][j].modified {
-				response += "m"
-			} else {
-				response += "."
-			}
-		}
-		response += "\n"
-	}
-	c.Write(ctx, websocket.MessageText, []byte(response))
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*10)
@@ -81,6 +58,59 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received '%v'", string(message))
 
 		parts := strings.Split(string(message), " ")
+		if parts[0] == "create-game" {
+			if inGame {
+				continue
+			}
+
+			inGame = true
+			game = new(Game)
+			games = append(games, game)
+
+			game.players = make([]*Player, 0)
+			game.players = append(game.players, &player)
+
+			game.chunkSize = 5.23
+			game.seed = rand.Float64() * 1e9
+			game.generateMap(19)
+
+			game.updateWithMap(&player, ctx)
+
+			continue
+		} else if parts[0] == "join-game" {
+			if inGame || len(games) == 0 {
+				continue
+			}
+
+			inGame = true
+			game = games[len(games)-1]
+
+			game.players = append(game.players, &player)
+
+			game.updateWithMap(&player, ctx)
+			game.updateWithTroops(&player, ctx)
+
+			response := "broadcast\nmodified-tiles\n"
+			for i := range game.board {
+				for j := range game.board[i] {
+					if game.board[i][j].modified {
+						response += "m"
+					} else {
+						response += "."
+					}
+				}
+				response += "\n"
+			}
+			c.Write(ctx, websocket.MessageText, []byte(response))
+
+			continue
+		}
+
+		if !inGame {
+			c.Write(ctx, websocket.MessageText, []byte("Error: you are not in a game"))
+			continue
+		}
+
 		if parts[0] == "generate-map" {
 			len, _ := strconv.Atoi(parts[1])
 			game.chunkSize, _ = strconv.ParseFloat(parts[2], 64)
