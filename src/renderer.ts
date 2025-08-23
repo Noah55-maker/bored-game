@@ -34,6 +34,10 @@ export let pickedData: Uint8Array = new Uint8Array(4);
 
 let isOnLaunchScreen: boolean = true;
 
+export function toggleLaunchScreen() {
+    setLaunchScreen(!isOnLaunchScreen);
+}
+
 export function setLaunchScreen(b: boolean) {
     isOnLaunchScreen = b;
 
@@ -643,5 +647,6 @@ export async function init(drawBoardScrolling: Function, drawBoardInstanced: Fun
         requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
     }
 
-    requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
+    setLaunchScreen(true);
+    requestAnimationFrame(renderLaunchScreen);
 }

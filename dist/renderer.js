@@ -26,6 +26,9 @@ let [mouseX, mouseY] = [-1, -1];
 let isPicking;
 export let pickedData = new Uint8Array(4);
 let isOnLaunchScreen = true;
+export function toggleLaunchScreen() {
+    setLaunchScreen(!isOnLaunchScreen);
+}
 export function setLaunchScreen(b) {
     isOnLaunchScreen = b;
     const fpsOverlay = document.getElementById("fps-overlay");
@@ -499,5 +502,6 @@ export async function init(drawBoardScrolling, drawBoardInstanced) {
         await new Promise((resolve) => setTimeout(resolve, 30 - (endTime - startTime)));
         requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
     }
-    requestAnimationFrame(isOnLaunchScreen ? renderLaunchScreen : renderGameBoard);
+    setLaunchScreen(true);
+    requestAnimationFrame(renderLaunchScreen);
 }

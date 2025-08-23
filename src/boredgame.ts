@@ -3,11 +3,13 @@
  * Mouse hover fade - only show for valid moves
  * Boat behavior when troop dismounts
  * Improve launch screen
+ *  - Fill screen with tiles when screen isn't a horizontal rectangle
  *  - Test out moving tiles instead of morphing tiles
  *  - Overlay with menu options (renderer)
+ * Reconnect to socket if disconnected
  */
 
-import { init, GamePiece, pickedData, setLaunchScreen } from "./renderer.js";
+import { init, GamePiece, pickedData, toggleLaunchScreen } from "./renderer.js";
 import perlinNoise from "./noise.js";
 
 export let MAP_LENGTH = 19;
@@ -545,7 +547,7 @@ async function handleKeyControl(event: KeyboardEvent) {
     }
 
     if (event.key == "s") {
-        setLaunchScreen(Math.random()<0.5);
+        toggleLaunchScreen();
     }
 }
 
@@ -645,7 +647,6 @@ try {
     seed = Math.random() * 1e9;
     generateMap();
 
-    setLaunchScreen(true);
     init(drawBoardScrolling, drawBoardInstanced);
 } catch (e) {
     console.log(`Uncaught JavaScript exception: ${e}`);
