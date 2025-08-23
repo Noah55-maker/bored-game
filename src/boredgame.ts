@@ -6,7 +6,6 @@
  *  - Fill screen with tiles when screen isn't a horizontal rectangle
  *  - Test out moving tiles instead of morphing tiles
  *  - Overlay with menu options (renderer)
- * Reconnect to socket if disconnected
  */
 
 import { init, GamePiece, pickedData, toggleLaunchScreen, isOnLaunchScreen } from "./renderer.js";
@@ -28,8 +27,10 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
-// const socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
-const socket = new WebSocket("ws://localhost:10000/echo");
+let socket = new WebSocket("ws://localhost:10000/echo");
+if (socket.readyState !== socket.OPEN) {
+    socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
+}
 const recievedMessages: string[] = [];
 socket.onmessage = receiveMessage;
 
