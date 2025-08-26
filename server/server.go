@@ -3,7 +3,6 @@
  * - assign message IDs to match responses with requests
  * - safe message parsing (avoid crashing with malformed requests)
  * - New games
- * 		- Update new players with a single game state message
  * 		- Assign clients their own player index (instead of each assuming they are 0)
  */
 
@@ -90,23 +89,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			game = games[len(games)-1]
 			game.players = append(game.players, &player)
 
-			c.Write(ctx, websocket.MessageText, []byte("ack"))
-
-			game.updateWithMap(&player, ctx)
-			game.updateWithTroops(&player, ctx)
-
-			response := "broadcast\nmodified-tiles\n"
-			for i := range game.board {
-				for j := range game.board[i] {
-					if game.board[i][j].modified {
-						response += "m"
-					} else {
-						response += "."
-					}
-				}
-				response += "\n"
-			}
-			c.Write(ctx, websocket.MessageText, []byte(response))
+			game.updateWithGameState(&player, ctx)
 
 			continue
 		}
@@ -154,9 +137,10 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
+			response := []byte(fmt.Sprintf("broadcast\nadd-troop %d %d %d", 1, x, y))
 			for _, p := range game.players {
 				if p != &player && p.connected {
-					game.updateWithTroops(p, ctx)
+					p.c.Write(ctx, websocket.MessageText, response)
 				}
 			}
 

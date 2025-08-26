@@ -51,12 +51,11 @@ func (g *Game) generateMap(length int) {
 	}
 }
 
-func (g *Game) updateWithMap(player *Player, ctx context.Context) error {
-	response := fmt.Sprintf("broadcast\nmap %d %f %f\n", len(g.board), g.chunkSize, g.seed)
-	return player.c.Write(ctx, websocket.MessageText, []byte(response))
-}
+func (g *Game) updateWithGameState(player *Player, ctx context.Context) error {
+	// map
+	response_map := fmt.Sprintf("map %d %f %f\n", len(g.board), g.chunkSize, g.seed)
 
-func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
+	// troops
 	yourTroops := len(player.troops)
 	otherTroops := 0
 	for _, p := range g.players {
@@ -64,13 +63,12 @@ func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 			otherTroops += len(p.troops)
 		}
 	}
-
-	response := fmt.Sprintf("broadcast\ntroops %d %d\n", yourTroops, otherTroops)
+	response_troops := fmt.Sprintf("troops %d %d\n", yourTroops, otherTroops)
 
 	for _, t := range player.troops {
-		response += fmt.Sprintf("%d %d,", t.x, t.y)
+		response_troops += fmt.Sprintf("%d %d,", t.x, t.y)
 	}
-	response += "\n"
+	response_troops += "\n"
 
 	for _, p := range g.players {
 		if p == player {
@@ -78,10 +76,30 @@ func (g *Game) updateWithTroops(player *Player, ctx context.Context) error {
 		}
 
 		for _, t := range p.troops {
-			response += fmt.Sprintf("%d %d,", t.x, t.y)
+			response_troops += fmt.Sprintf("%d %d,", t.x, t.y)
 		}
 	}
+	response_troops += "\n"
 
+	// modified tiles
+	response_tiles := "modified-tiles\n"
+	for i := range g.board {
+		for j := range g.board[i] {
+			if g.board[i][j].modified {
+				response_tiles += "m"
+			} else {
+				response_tiles += "."
+			}
+		}
+		response_tiles += "\n"
+	}
+
+	response := response_map + response_troops + response_tiles
+	return player.c.Write(ctx, websocket.MessageText, []byte(response))
+}
+
+func (g *Game) updateWithMap(player *Player, ctx context.Context) error {
+	response := fmt.Sprintf("broadcast\nupdate-map %d %f %f\n", len(g.board), g.chunkSize, g.seed)
 	return player.c.Write(ctx, websocket.MessageText, []byte(response))
 }
 

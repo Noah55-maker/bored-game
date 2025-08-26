@@ -47,9 +47,36 @@ create_game_button.onclick = async () => {
     toggleLaunchScreen();
 };
 join_game_button.onclick = async () => {
-    await sendMessage("join-game", true);
+    const response = await sendMessage("join-game", true);
+    parseGameState(response);
     toggleLaunchScreen();
 };
+function parseGameState(state) {
+    const lines = state.split("\n");
+    // map
+    const mapLine = lines[0].split(" ");
+    [MAP_LENGTH, CHUNK_SIZE, seed] = [parseInt(mapLine[1]), parseFloat(mapLine[2]), parseFloat(mapLine[3])];
+    generateMap();
+    // troops
+    const troopLine = lines[1].split(" ");
+    for (let i = 0; i < troopLine.length - 1; i++) {
+        players[i].troops = [];
+        const parts = lines[i + 2].split(",");
+        const numTroops = parseInt(troopLine[i + 1]);
+        for (let j = 0; j < numTroops; j++) {
+            const coord = parts[j].split(" ");
+            const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
+            players[i].troops.push(new Troop(x, y));
+        }
+    }
+    // modified tiles
+    const lineOffset = 1 + 1 + (troopLine.length - 1) + 1;
+    for (let i = 0; i < MAP_LENGTH; i++) {
+        for (let j = 0; j < MAP_LENGTH; j++) {
+            board[i][j].modified = lines[i + lineOffset][j] == 'm';
+        }
+    }
+}
 function receiveMessage(msg) {
     console.log(msg);
     recievedMessages.push(msg.data);
@@ -59,7 +86,7 @@ function receiveMessage(msg) {
     }
     const line1 = lines[1].split(" ");
     switch (line1[0]) {
-        case "map": {
+        case "update-map": {
             for (let i = 0; i < parseInt(line1[1]) - MAP_LENGTH; i++) {
                 board.push([]);
             }
@@ -67,30 +94,9 @@ function receiveMessage(msg) {
             generateMap();
             break;
         }
-        case "troops": {
-            for (let i = 0; i < lines.length - 2; i++) {
-                players[i].troops = [];
-                const parts = lines[i + 2].split(",");
-                const numTroops = parseInt(line1[i + 1]);
-                for (let j = 0; j < numTroops; j++) {
-                    const coord = parts[j].split(" ");
-                    const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
-                    players[i].troops.push(new Troop(x, y));
-                }
-            }
-            break;
-        }
         case "modify-tile": {
             const [x, y] = [parseInt(line1[1]), parseInt(line1[2])];
             board[y][x].modified = !board[y][x].modified;
-            break;
-        }
-        case "modified-tiles": {
-            for (let i = 0; i < MAP_LENGTH; i++) {
-                for (let j = 0; j < MAP_LENGTH; j++) {
-                    board[i][j].modified = lines[i + 2][j] == 'm';
-                }
-            }
             break;
         }
         case "move-troop": {
@@ -98,6 +104,12 @@ function receiveMessage(msg) {
             const [x, y] = [parseInt(line1[3]), parseInt(line1[4])];
             const troop = players[pI].troops[tI];
             troop.move(x - troop.x, y - troop.y);
+            break;
+        }
+        case "add-troop": {
+            const pI = parseInt(line1[1]);
+            const [x, y] = [parseInt(line1[2]), parseInt(line1[3])];
+            players[pI].troops.push(new Troop(x, y));
             break;
         }
         default: {
