@@ -93,6 +93,13 @@ function receiveMessage(msg) {
             }
             break;
         }
+        case "move-troop": {
+            const [pI, tI] = [parseInt(line1[1]), parseInt(line1[2])];
+            const [x, y] = [parseInt(line1[3]), parseInt(line1[4])];
+            const troop = players[pI].troops[tI];
+            troop.move(x - troop.x, y - troop.y);
+            break;
+        }
         default: {
             console.log(`unrecognized broadcast command received: ${line1[0]}`);
         }
@@ -269,7 +276,8 @@ function drawBoardInstanced(gamePieces, time) {
                 x -= troop.deltaX * normalizedFade(deltaTime);
                 y -= troop.deltaY * normalizedFade(deltaTime);
             }
-            if (troop.isOnShip) {
+            const troopTile = board[troop.y][troop.x].type;
+            if (troopTile == WATER || troopTile == OCEAN) {
                 let rotation = 0;
                 if (troop.deltaX >= 1)
                     rotation = Math.PI;

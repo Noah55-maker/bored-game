@@ -2,6 +2,9 @@
  * TODO
  * - assign message IDs to match responses with requests
  * - safe message parsing (avoid crashing with malformed requests)
+ * - New games
+ * 		- Update new players with a single game state message
+ * 		- Assign clients their own player index (instead of each assuming they are 0)
  */
 
 package main
@@ -173,7 +176,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			for _, p := range game.players {
 				if p != &player && p.connected {
-					game.updateWithTroops(p, ctx)
+					response := fmt.Sprintf("broadcast\nmove-troop %d %d %d %d", 1, troopIndex, x, y)
+					p.c.Write(ctx, websocket.MessageText, []byte(response))
 				}
 			}
 
