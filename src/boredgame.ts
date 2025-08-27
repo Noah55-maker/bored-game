@@ -32,7 +32,7 @@ let localSocket = true;
 let socket = new WebSocket("ws://localhost:10000/echo");
 if (socket.readyState !== socket.OPEN) {
     localSocket = false;
-    socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
+    socket = new WebSocket("wss://bored-game-as81.onrender.com/echo");
 }
 const recievedMessages: string[] = [];
 socket.onmessage = receiveMessage;
@@ -40,7 +40,7 @@ socket.onclose = async () => {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     console.log("Reconnecting");
     if (localSocket) socket = new WebSocket("ws://localhost:10000/echo");
-    else socket = new WebSocket("ws://bored-game-as81.onrender.com/echo");
+    else socket = new WebSocket("wss://bored-game-as81.onrender.com/echo");
 };
 
 const create_game_button = document.getElementById("create-game-button");
@@ -450,6 +450,9 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
         return false;
     }
 
+    // check for other troops
+    if (tileHasTroop(newX, newY)[0] != -1) return false;
+
     const currentTile = board[troop.y][troop.x].type;
     const newTile = board[newY][newX].type;
 
@@ -460,9 +463,6 @@ function troopCanMove(troop: Troop, deltaX: number, deltaY: number): boolean {
     if (newTile == WATER || newTile == OCEAN) {
         return troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified);
     }
-
-    // check for other troops
-    if (tileHasTroop(newX, newY)[0] != -1) return false;
 
     return true;
 }
@@ -520,7 +520,6 @@ function tileHasTroop(tileX: number, tileY: number) {
                 return [i, j];
         }
     }
-
     return [-1, -1];
 }
 
