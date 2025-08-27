@@ -40,7 +40,8 @@ socket.onclose = async () => {
 };
 const create_game_button = document.getElementById("create-game-button");
 const join_game_button = document.getElementById("join-game-button");
-if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement)) {
+const sandbox_button = document.getElementById("sandbox-button");
+if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button instanceof HTMLButtonElement) || !(sandbox_button instanceof HTMLButtonElement)) {
     throw new Error("Button element not found");
 }
 create_game_button.onclick = async () => {
@@ -50,6 +51,9 @@ create_game_button.onclick = async () => {
 join_game_button.onclick = async () => {
     const response = await sendMessage("join-game", true);
     parseGameState(response);
+    toggleLaunchScreen();
+};
+sandbox_button.onclick = () => {
     toggleLaunchScreen();
 };
 function parseGameState(state) {
