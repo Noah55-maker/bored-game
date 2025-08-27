@@ -28,6 +28,7 @@ const NUMBER_OF_STARTING_TROOPS = 3;
 const players: Player[] = [];
 const board: Tile[][] = [];
 
+let inGame = false;
 let localSocket = true;
 let socket = new WebSocket("ws://localhost:10000/echo");
 if (socket.readyState !== socket.OPEN) {
@@ -52,11 +53,13 @@ if (!(create_game_button instanceof HTMLButtonElement) || !(join_game_button ins
 create_game_button.onclick = async () => {
     await sendMessage("create-game", true);
     toggleLaunchScreen();
+    inGame = true;
 };
 join_game_button.onclick = async () => {
     const response = await sendMessage("join-game", true);
     parseGameState(response);
     toggleLaunchScreen();
+    inGame = true;
 };
 sandbox_button.onclick = () => {
     toggleLaunchScreen();
@@ -573,7 +576,7 @@ async function handleKeyControl(event: KeyboardEvent) {
     }
 
     if (event.key == "m") {
-        if (isOnLaunchScreen) {
+        if (isOnLaunchScreen || !inGame) {
             SEED = Math.random() * 1e9;
             generateMap();
         }
