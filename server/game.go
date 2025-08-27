@@ -51,6 +51,15 @@ func (g *Game) generateMap(length int) {
 	}
 }
 
+func (g *Game) broadcastMessage(skipPlayer *Player, ctx context.Context, msg string) {
+	toSend := fmt.Append(nil, "broadcast\n", msg)
+	for _, p := range g.players {
+		if p != skipPlayer && p.connected {
+			p.c.Write(ctx, websocket.MessageText, toSend)
+		}
+	}
+}
+
 func (g *Game) updateWithGameState(player *Player, ctx context.Context) error {
 	// player index
 	response_player_index := fmt.Sprintf("player-index %d\n", player.player_index)

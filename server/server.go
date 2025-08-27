@@ -91,12 +91,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			player.player_index = len(game.players) - 1
 
 			game.updateWithGameState(&player, ctx)
-
-			for _, p := range game.players {
-				if p != &player && p.connected {
-					p.c.Write(ctx, websocket.MessageText, []byte("broadcast\nnew-player"))
-				}
-			}
+			game.broadcastMessage(&player, ctx, "new-player")
 
 			continue
 		}
@@ -144,12 +139,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			response := fmt.Appendf(nil, "broadcast\nadd-troop %d %d %d", player.player_index, x, y)
-			for _, p := range game.players {
-				if p != &player && p.connected {
-					p.c.Write(ctx, websocket.MessageText, response)
-				}
-			}
+			response := fmt.Sprintf("add-troop %d %d %d", player.player_index, x, y)
+			game.broadcastMessage(&player, ctx, response)
 
 			continue
 		} else if parts[0] == "move-troop" {
@@ -165,12 +156,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for _, p := range game.players {
-				if p != &player && p.connected {
-					response := fmt.Sprintf("broadcast\nmove-troop %d %d %d %d", player.player_index, troopIndex, x, y)
-					p.c.Write(ctx, websocket.MessageText, []byte(response))
-				}
-			}
+			response := fmt.Sprintf("move-troop %d %d %d %d", player.player_index, troopIndex, x, y)
+			game.broadcastMessage(&player, ctx, response)
 
 			continue
 		} else if parts[0] == "modify-tile" {
@@ -184,12 +171,8 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			for _, p := range game.players {
-				if p != &player && p.connected {
-					response := fmt.Sprintf("broadcast\nmodify-tile %d %d", x, y)
-					p.c.Write(ctx, websocket.MessageText, []byte(response))
-				}
-			}
+			response := fmt.Sprintf("modify-tile %d %d", x, y)
+			game.broadcastMessage(&player, ctx, response)
 
 			continue
 		}
