@@ -52,34 +52,25 @@ func (g *Game) generateMap(length int) {
 }
 
 func (g *Game) updateWithGameState(player *Player, ctx context.Context) error {
+	// player index
+	response_player_index := fmt.Sprintf("player-index %d\n", player.player_index)
+
 	// map
 	response_map := fmt.Sprintf("map %d %f %f\n", len(g.board), g.chunkSize, g.seed)
 
 	// troops
-	yourTroops := len(player.troops)
-	otherTroops := 0
+	response_troops := fmt.Sprintf("troops %d\n", len(g.players))
 	for _, p := range g.players {
-		if p != player {
-			otherTroops += len(p.troops)
-		}
-	}
-	response_troops := fmt.Sprintf("troops %d %d\n", yourTroops, otherTroops)
-
-	for _, t := range player.troops {
-		response_troops += fmt.Sprintf("%d %d,", t.x, t.y)
+		response_troops += fmt.Sprintf("%d ", len(p.troops))
 	}
 	response_troops += "\n"
 
 	for _, p := range g.players {
-		if p == player {
-			continue
-		}
-
 		for _, t := range p.troops {
 			response_troops += fmt.Sprintf("%d %d,", t.x, t.y)
 		}
+		response_troops += "\n"
 	}
-	response_troops += "\n"
 
 	// modified tiles
 	response_tiles := "modified-tiles\n"
@@ -94,7 +85,7 @@ func (g *Game) updateWithGameState(player *Player, ctx context.Context) error {
 		response_tiles += "\n"
 	}
 
-	response := response_map + response_troops + response_tiles
+	response := response_player_index + response_map + response_troops + response_tiles
 	return player.c.Write(ctx, websocket.MessageText, []byte(response))
 }
 
@@ -107,6 +98,7 @@ type Player struct {
 	c *websocket.Conn
 	connected bool
 
+	player_index int
 	troops []Troop
 	wood, stone int
 }

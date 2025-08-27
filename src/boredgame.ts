@@ -16,9 +16,10 @@ export let LAUNCH_SCREEN_MAP_LENGTH = 35;
 
 /** how many (tiles per noise value) you want: ~5 is a reasonable value */
 let CHUNK_SIZE = 5.23;
-let seed: number;
+let SEED: number;
 
 let playerTurn = 0;
+let myPlayerIndex = 0;
 let moves = 0;
 let lastActionTime = 0;
 let turnHappened = false;
@@ -60,19 +61,26 @@ join_game_button.onclick = async () => {
 function parseGameState(state: string) {
     const lines = state.split("\n");
 
+    // player index
+    myPlayerIndex = parseInt(lines[0].split(" ")[1]);
+
     // map
-    const mapLine = lines[0].split(" ");
-    [MAP_LENGTH, CHUNK_SIZE, seed] = [parseInt(mapLine[1]), parseFloat(mapLine[2]), parseFloat(mapLine[3])];
+    const mapLine = lines[1].split(" ");
+    [MAP_LENGTH, CHUNK_SIZE, SEED] = [parseInt(mapLine[1]), parseFloat(mapLine[2]), parseFloat(mapLine[3])];
     generateMap();
 
     // troops
-    const troopLine = lines[1].split(" ");
-    for (let i = 0; i < troopLine.length - 1; i++) {
-        players[i].troops = [];
-        const parts = lines[i + 2].split(",");
-        const numTroops = parseInt(troopLine[i + 1]);
+    const numPlayers = parseInt(lines[2].split(" ")[1]);
+    while (players.length < numPlayers) {
+        players.push(new Player());
+    }
 
-        for (let j = 0; j < numTroops; j++) {
+    const troopNum = lines[3].split(" ").map((s) => { return parseInt(s); });
+    let lineOffset = 4;
+    for (let i = 0; i < numPlayers; i++) {
+        players[i].troops = [];
+        const parts = lines[i + lineOffset].split(",");
+        for (let j = 0; j < troopNum[i]; j++) {
             const coord = parts[j].split(" ");
             const [x, y] = [parseInt(coord[0]), parseInt(coord[1])];
             players[i].troops.push(new Troop(x, y));
@@ -80,7 +88,7 @@ function parseGameState(state: string) {
     }
 
     // modified tiles
-    const lineOffset = 1 + 1 + (troopLine.length - 1) + 1;
+    lineOffset += numPlayers + 1;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
             board[i][j].modified = lines[i + lineOffset][j] == 'm';
@@ -104,9 +112,8 @@ function receiveMessage(msg: any) {
                 board.push([]);
             }
 
-            [MAP_LENGTH, CHUNK_SIZE, seed] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
+            [MAP_LENGTH, CHUNK_SIZE, SEED] = [parseInt(line1[1]), parseFloat(line1[2]), parseFloat(line1[3])];
             generateMap();
-
             break;
         }
         case "modify-tile": {
@@ -115,16 +122,21 @@ function receiveMessage(msg: any) {
             break;
         }
         case "move-troop": {
-            const [pI, tI] = [parseInt(line1[1]), parseInt(line1[2])];
-            const [x, y] = [parseInt(line1[3]), parseInt(line1[4])];
+            const parsed = line1.map((s) => { return parseInt(s); });
+            const [pI, tI] = [parsed[1], parsed[2]];
+            const [x, y] = [parsed[3], parsed[4]];
             const troop = players[pI].troops[tI];
             troop.move(x - troop.x, y - troop.y);
             break;
         }
         case "add-troop": {
-            const pI = parseInt(line1[1]);
-            const [x, y] = [parseInt(line1[2]), parseInt(line1[3])];
+            const parsed = line1.map((s) => { return parseInt(s); });
+            const [pI, x, y] = [parsed[1], parsed[2], parsed[3]];
             players[pI].troops.push(new Troop(x, y));
+            break;
+        }
+        case "new-player": {
+            players.push(new Player());
             break;
         }
         default: {
@@ -263,8 +275,8 @@ function normalizedFade(x: number) {
 function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            if (turnHappened && players[0].troops.length != 0) {
-                const selectedTroop = players[0].selectedTroop();
+            if (turnHappened && players[myPlayerIndex].troops.length != 0) {
+                const selectedTroop = players[myPlayerIndex].selectedTroop();
                 const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
                 board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
                                   || Math.abs(deltaX) + Math.abs(deltaY) === 0 && board[y][x].isModifiable());
@@ -316,10 +328,10 @@ function drawBoardInstanced(gamePieces: GamePiece[], time: number) {
     // draw player troops
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
-        const soldierIndex = (i == 0 ? SOLDIER_BLUE : SOLDIER_RED);
+        const soldierIndex = (i == myPlayerIndex ? SOLDIER_BLUE : SOLDIER_RED);
 
         for (let j = 0; j < p.troops.length; j++) {
-            const isSelected = (i === 0 && players[0].selectedTroopIndex === j);
+            const isSelected = (i === myPlayerIndex && players[myPlayerIndex].selectedTroopIndex === j);
             const troop = p.troops[j];
             let [x, y] = [troop.x, troop.y];
 
@@ -386,7 +398,7 @@ function drawBoardScrolling(gamePieces: GamePiece[], time: number) {
 }
 
 function getNoiseTile(x: number, y: number): TileType {
-    const noise = perlinNoise(x / CHUNK_SIZE, y / CHUNK_SIZE, seed);
+    const noise = perlinNoise(x / CHUNK_SIZE, y / CHUNK_SIZE, SEED);
 
     if (noise < .25) return OCEAN;
     else if (noise < .4) return WATER;
@@ -490,7 +502,7 @@ function moveTroop(troop: Troop, deltaX: number, deltaY: number): boolean {
     }
 
     troop.move(deltaX, deltaY);
-    sendMessage(`move-troop ${players[0].selectedTroopIndex} ${troop.x} ${troop.y}`, true);
+    sendMessage(`move-troop ${players[myPlayerIndex].selectedTroopIndex} ${troop.x} ${troop.y}`, true);
     return true;
 }
 
@@ -517,7 +529,7 @@ function handleKeyDown(event: KeyboardEvent) {
     if (currentTime - lastActionTime < 1) return;
     lastActionTime = currentTime;
 
-    const focusedTroop = players[0].selectedTroop();
+    const focusedTroop = players[myPlayerIndex].selectedTroop();
 
     // move troop
     if (event.key == "ArrowLeft") {
@@ -550,16 +562,16 @@ function handleKeyDown(event: KeyboardEvent) {
 
 async function handleKeyControl(event: KeyboardEvent) {
     if (event.key == "t") {
-        players[0].selectedTroopIndex++;
-        if (players[0].selectedTroopIndex >= players[0].troops.length)
-            players[0].selectedTroopIndex = 0;
+        players[myPlayerIndex].selectedTroopIndex++;
+        if (players[myPlayerIndex].selectedTroopIndex >= players[myPlayerIndex].troops.length)
+            players[myPlayerIndex].selectedTroopIndex = 0;
 
         turnHappened = true;
     }
 
     if (event.key == "m") {
         if (isOnLaunchScreen) {
-            seed = Math.random() * 1e9;
+            SEED = Math.random() * 1e9;
             generateMap();
         }
         else {
@@ -610,7 +622,7 @@ function handleMouseDown(_event: MouseEvent) {
 
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
-    const currentPlayer = players[0];
+    const currentPlayer = players[myPlayerIndex];
 
     turnHappened = true;
 
@@ -625,12 +637,12 @@ function handleMouseDown(_event: MouseEvent) {
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
     }
-    else if (res[0] != 0) {
+    else if (res[0] != myPlayerIndex) {
         return;
     }
 
     // otherwise, modify the tile or change troop focus
-    else { // if (res[0] == playerTurn)
+    else { // if (res[0] == myPlayerIndex)
         if (currentPlayer.selectedTroopIndex == res[1]) {
             board[y][x].modified = !board[y][x].modified;
             sendMessage(`modify-tile ${x} ${y}`, true);
@@ -658,7 +670,9 @@ function mouseDown_beginning(_event: MouseEvent) {
     if (res[0] !== -1) return;
 
     // check for nearby opponent troops
-    for (let i = 1; i < players.length; i++) {
+    for (let i = 0; i < players.length; i++) {
+        if (i == myPlayerIndex) continue;
+
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
 
@@ -672,7 +686,7 @@ function mouseDown_beginning(_event: MouseEvent) {
     if (tileType === VOLCANO || tileType === WATER || tileType === OCEAN)
         return;
 
-    players[0].addTroop(x, y);
+    players[myPlayerIndex].addTroop(x, y);
 
     moves++;
     if (moves === NUMBER_OF_STARTING_TROOPS) {
@@ -694,7 +708,7 @@ try {
     // initialize board
     for (let i = 0; i < MAP_LENGTH; i++) board.push([]);
 
-    seed = Math.random() * 1e9;
+    SEED = Math.random() * 1e9;
     generateMap();
 
     init(drawBoardScrolling, drawBoardInstanced);

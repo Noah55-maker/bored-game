@@ -2,8 +2,6 @@
  * TODO
  * - assign message IDs to match responses with requests
  * - safe message parsing (avoid crashing with malformed requests)
- * - New games
- * 		- Assign clients their own player index (instead of each assuming they are 0)
  */
 
 package main
@@ -45,6 +43,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 	var player Player
 	player.connected = true
 	player.c = c
+	player.player_index = -1
 
 	var game *Game
 	inGame := false
@@ -71,6 +70,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			game.players = make([]*Player, 0)
 			game.players = append(game.players, &player)
+			player.player_index = 0
 
 			game.chunkSize = 5.23
 			game.seed = rand.Float64() * 1e9
@@ -88,8 +88,15 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 			inGame = true
 			game = games[len(games)-1]
 			game.players = append(game.players, &player)
+			player.player_index = len(game.players) - 1
 
 			game.updateWithGameState(&player, ctx)
+
+			for _, p := range game.players {
+				if p != &player && p.connected {
+					p.c.Write(ctx, websocket.MessageText, []byte("broadcast\nnew-player"))
+				}
+			}
 
 			continue
 		}
@@ -137,7 +144,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 
-			response := []byte(fmt.Sprintf("broadcast\nadd-troop %d %d %d", 1, x, y))
+			response := fmt.Appendf(nil, "broadcast\nadd-troop %d %d %d", player.player_index, x, y)
 			for _, p := range game.players {
 				if p != &player && p.connected {
 					p.c.Write(ctx, websocket.MessageText, response)
@@ -160,7 +167,7 @@ func echoHandler(w http.ResponseWriter, r *http.Request) {
 
 			for _, p := range game.players {
 				if p != &player && p.connected {
-					response := fmt.Sprintf("broadcast\nmove-troop %d %d %d %d", 1, troopIndex, x, y)
+					response := fmt.Sprintf("broadcast\nmove-troop %d %d %d %d", player.player_index, troopIndex, x, y)
 					p.c.Write(ctx, websocket.MessageText, []byte(response))
 				}
 			}
