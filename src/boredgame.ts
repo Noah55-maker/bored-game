@@ -390,7 +390,7 @@ function drawBoardScrolling(gamePieces: GamePiece[], time: number) {
 
     for (let y = 0; y < LAUNCH_SCREEN_MAP_LENGTH; y++) {
         for (let x = 0; x < LAUNCH_SCREEN_MAP_LENGTH; x++) {
-            const terrain = getNoiseTile(x + time/5, y);
+            const terrain = getNoiseTile(x + time / 5, y);
             addPiece(terrain, x, y);
 
             if (terrain === VOLCANO) addPiece(LAVA, x, y);
@@ -616,6 +616,18 @@ async function handleKeyControl(event: KeyboardEvent) {
 
     if (event.key == "s") {
         toggleLaunchScreen();
+    }
+
+    if (event.key == "v") {
+        const fpsOverlay = document.getElementById("fps-overlay");
+        const fsOverlay = document.getElementById("fs-overlay");
+
+        if (fpsOverlay === null || fsOverlay === null) {
+            throw new Error("overlay is null");
+        }
+
+        fpsOverlay.style.visibility = "hidden";
+        fsOverlay.style.visibility = "hidden";
     }
 }
 

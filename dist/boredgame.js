@@ -543,6 +543,15 @@ async function handleKeyControl(event) {
     if (event.key == "s") {
         toggleLaunchScreen();
     }
+    if (event.key == "v") {
+        const fpsOverlay = document.getElementById("fps-overlay");
+        const fsOverlay = document.getElementById("fs-overlay");
+        if (fpsOverlay === null || fsOverlay === null) {
+            throw new Error("overlay is null");
+        }
+        fpsOverlay.style.visibility = "hidden";
+        fsOverlay.style.visibility = "hidden";
+    }
 }
 function handleMouseDown(_event) {
     if (pickedData[2] == 0)
