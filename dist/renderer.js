@@ -69,7 +69,7 @@ export class GamePiece {
         this.diffuse = diffuse;
     }
     drawMultiple(numInstances, xPositions, yPositions, time, fade, rotation) {
-        if (numInstances == 0)
+        if (numInstances === 0)
             return;
         gl.bindVertexArray(isPicking ? this.pickingVao : this.vao);
         let positionMatrix = m4.scaleUniformly(baseMatrix, 35 / MAP_LENGTH);
@@ -112,7 +112,7 @@ export class GamePiece {
             const brightnessArray = new Float32Array(numInstances);
             const fadeMultiplier = 0.95 + Math.abs(0.3 * Math.sin(2 * time));
             for (let i = 0; i < numInstances; i++) {
-                if (fade[i] || (pickedData[0] == xPositions[i] && pickedData[1] == yPositions[i] && pickedData[2] == 1))
+                if (fade[i] || (pickedData[0] === xPositions[i] && pickedData[1] === yPositions[i] && pickedData[2] === 1))
                     brightnessArray[i] = fadeMultiplier;
                 else
                     brightnessArray[i] = 1;
@@ -127,7 +127,7 @@ export class GamePiece {
         gl.drawArraysInstanced(gl.TRIANGLES, 0, this.numVerticies, numInstances);
     }
     drawScrolling(numInstances, xPositions, yPositions, time) {
-        if (numInstances == 0)
+        if (numInstances === 0)
             return;
         gl.bindVertexArray(this.vao);
         let positionMatrix = m4.scaleUniformly(baseMatrix, 85 / LAUNCH_SCREEN_MAP_LENGTH);
@@ -386,7 +386,7 @@ export async function init(drawBoardScrolling, drawBoardInstanced) {
     gl = getContext(canvas);
     const fpsElement = document.querySelector("#fps");
     const fpsNode = document.createTextNode("");
-    if (fpsElement == null) {
+    if (fpsElement === null) {
         throw new Error("fps element not found");
     }
     fpsElement.appendChild(fpsNode);

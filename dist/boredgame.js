@@ -87,7 +87,7 @@ function parseGameState(state) {
     lineOffset += numPlayers + 1;
     for (let i = 0; i < MAP_LENGTH; i++) {
         for (let j = 0; j < MAP_LENGTH; j++) {
-            board[i][j].modified = lines[i + lineOffset][j] == 'm';
+            board[i][j].modified = lines[i + lineOffset][j] === 'm';
         }
     }
 }
@@ -144,7 +144,7 @@ async function sendMessage(message, waitForResponse = false) {
     if (!waitForResponse)
         return "";
     let i = 0;
-    while (recievedMessages.length == l && i++ < 1000) {
+    while (recievedMessages.length === l && i++ < 1000) {
         await new Promise((resolve) => setTimeout(resolve, 10));
     }
     if (i >= 1000)
@@ -245,7 +245,7 @@ function normalizedFade(x) {
 function drawBoardInstanced(gamePieces, time) {
     for (let y = 0; y < MAP_LENGTH; y++) {
         for (let x = 0; x < MAP_LENGTH; x++) {
-            if (turnHappened && players[myPlayerIndex].troops.length != 0) {
+            if (turnHappened && players[myPlayerIndex].troops.length !== 0) {
                 const selectedTroop = players[myPlayerIndex].selectedTroop();
                 const [deltaX, deltaY] = [x - selectedTroop.x, y - selectedTroop.y];
                 board[y][x].fade = (Math.abs(deltaX) + Math.abs(deltaY) === 1 && troopCanMove(selectedTroop, deltaX, deltaY)
@@ -295,7 +295,7 @@ function drawBoardInstanced(gamePieces, time) {
     // draw player troops
     for (let i = 0; i < players.length; i++) {
         const p = players[i];
-        const soldierIndex = (i == myPlayerIndex ? SOLDIER_BLUE : SOLDIER_RED);
+        const soldierIndex = (i === myPlayerIndex ? SOLDIER_BLUE : SOLDIER_RED);
         for (let j = 0; j < p.troops.length; j++) {
             const isSelected = (i === myPlayerIndex && players[myPlayerIndex].selectedTroopIndex === j);
             const troop = p.troops[j];
@@ -308,7 +308,7 @@ function drawBoardInstanced(gamePieces, time) {
                 y -= troop.deltaY * normalizedFade(deltaTime);
             }
             const troopTile = board[troop.y][troop.x].type;
-            if (troopTile == WATER || troopTile == OCEAN) {
+            if (troopTile === WATER || troopTile === OCEAN) {
                 let rotation = 0;
                 if (troop.deltaX >= 1)
                     rotation = Math.PI;
@@ -407,15 +407,15 @@ function troopCanMove(troop, deltaX, deltaY) {
         return false;
     }
     // check for other troops
-    if (tileHasTroop(newX, newY)[0] != -1)
+    if (tileHasTroop(newX, newY)[0] !== -1)
         return false;
     const currentTile = board[troop.y][troop.x].type;
     const newTile = board[newY][newX].type;
-    if (newTile == VOLCANO) {
+    if (newTile === VOLCANO) {
         return false;
     }
-    if (newTile == WATER || newTile == OCEAN) {
-        return troop.isOnShip || (currentTile == COAST && board[troop.y][troop.x].modified);
+    if (newTile === WATER || newTile === OCEAN) {
+        return troop.isOnShip || (currentTile === COAST && board[troop.y][troop.x].modified);
     }
     return true;
 }
@@ -463,7 +463,7 @@ function tileHasTroop(tileX, tileY) {
     for (let i = 0; i < players.length; i++) {
         const playerTroops = players[i].troops;
         for (let j = 0; j < playerTroops.length; j++) {
-            if (playerTroops[j].x == tileX && playerTroops[j].y == tileY)
+            if (playerTroops[j].x === tileX && playerTroops[j].y === tileY)
                 return [i, j];
         }
     }
@@ -476,24 +476,24 @@ function handleKeyDown(event) {
     lastActionTime = currentTime;
     const focusedTroop = players[myPlayerIndex].selectedTroop();
     // move troop
-    if (event.key == "ArrowLeft") {
+    if (event.key === "ArrowLeft") {
         if (moveTroop(focusedTroop, -1, 0))
             playerAction();
     }
-    else if (event.key == "ArrowRight") {
+    else if (event.key === "ArrowRight") {
         if (moveTroop(focusedTroop, +1, 0))
             playerAction();
     }
-    else if (event.key == "ArrowUp") {
+    else if (event.key === "ArrowUp") {
         if (moveTroop(focusedTroop, 0, -1))
             playerAction();
     }
-    else if (event.key == "ArrowDown") {
+    else if (event.key === "ArrowDown") {
         if (moveTroop(focusedTroop, 0, +1))
             playerAction();
     }
     // modify tile
-    else if (event.key == " ") {
+    else if (event.key === " ") {
         board[focusedTroop.y][focusedTroop.x].modified = !board[focusedTroop.y][focusedTroop.x].modified;
         sendMessage(`modify-tile ${focusedTroop.x} ${focusedTroop.y}`, true);
         if (board[focusedTroop.y][focusedTroop.x].type === WATER || board[focusedTroop.y][focusedTroop.x].type === OCEAN)
@@ -502,13 +502,13 @@ function handleKeyDown(event) {
     }
 }
 async function handleKeyControl(event) {
-    if (event.key == "t") {
+    if (event.key === "t") {
         players[myPlayerIndex].selectedTroopIndex++;
         if (players[myPlayerIndex].selectedTroopIndex >= players[myPlayerIndex].troops.length)
             players[myPlayerIndex].selectedTroopIndex = 0;
         turnHappened = true;
     }
-    if (event.key == "m") {
+    if (event.key === "m") {
         if (isOnLaunchScreen || !inGame) {
             SEED = Math.random() * 1e9;
             generateMap();
@@ -517,33 +517,33 @@ async function handleKeyControl(event) {
             sendMessage(`generate-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         }
     }
-    if (event.key == "1") {
+    if (event.key === "1") {
         MAP_LENGTH = Math.max(1, MAP_LENGTH - 1);
         console.log("Map length = " + MAP_LENGTH);
         sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
-    if (event.key == "2") {
+    if (event.key === "2") {
         MAP_LENGTH++;
         console.log("Map length = " + MAP_LENGTH);
         board.push([]);
         sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
-    if (event.key == "9") {
+    if (event.key === "9") {
         CHUNK_SIZE = Math.max(1, CHUNK_SIZE - (0.1 + Math.random() * 0.02));
         sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
-    if (event.key == "0") {
+    if (event.key === "0") {
         CHUNK_SIZE += (0.1 + Math.random() * 0.02);
         sendMessage(`update-map ${MAP_LENGTH} ${CHUNK_SIZE}`, false);
         generateMap();
     }
-    if (event.key == "s") {
+    if (event.key === "s") {
         toggleLaunchScreen();
     }
-    if (event.key == "v") {
+    if (event.key === "v") {
         const fpsOverlay = document.getElementById("fps-overlay");
         const fsOverlay = document.getElementById("fs-overlay");
         if (fpsOverlay === null || fsOverlay === null) {
@@ -554,7 +554,7 @@ async function handleKeyControl(event) {
     }
 }
 function handleMouseDown(_event) {
-    if (pickedData[2] == 0)
+    if (pickedData[2] === 0)
         return;
     const currentTime = new Date().getTime() / 1000;
     if (currentTime - lastActionTime < 1)
@@ -573,12 +573,12 @@ function handleMouseDown(_event) {
             currentPlayer.selectedTroopIndex = currentPlayer.troops.length - 1;
         }
     }
-    else if (res[0] != myPlayerIndex) {
+    else if (res[0] !== myPlayerIndex) {
         return;
     }
     // otherwise, modify the tile or change troop focus
-    else { // if (res[0] == myPlayerIndex)
-        if (currentPlayer.selectedTroopIndex == res[1]) {
+    else { // if (res[0] === myPlayerIndex)
+        if (currentPlayer.selectedTroopIndex === res[1]) {
             board[y][x].modified = !board[y][x].modified;
             sendMessage(`modify-tile ${x} ${y}`, true);
         }
@@ -594,7 +594,7 @@ function playerAction() {
     turnHappened = true;
 }
 function mouseDown_beginning(_event) {
-    if (pickedData[2] == 0)
+    if (pickedData[2] === 0)
         return;
     const [x, y] = [pickedData[0], pickedData[1]];
     const res = tileHasTroop(x, y);
@@ -603,7 +603,7 @@ function mouseDown_beginning(_event) {
         return;
     // check for nearby opponent troops
     for (let i = 0; i < players.length; i++) {
-        if (i == myPlayerIndex)
+        if (i === myPlayerIndex)
             continue;
         for (let j = 0; j < players[i].troops.length; j++) {
             const otherTroop = players[i].troops[j];
