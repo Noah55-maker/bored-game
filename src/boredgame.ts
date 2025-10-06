@@ -82,7 +82,7 @@ function parseGameState(state: string) {
         players.push(new Player());
     }
 
-    const troopNum = lines[3].split(" ").map((s) => { return parseInt(s); });
+    const troopNum = lines[3].split(" ").map((s) => parseInt(s));
     let lineOffset = 4;
     for (let i = 0; i < numPlayers; i++) {
         players[i].troops = [];
@@ -129,7 +129,7 @@ function receiveMessage(msg: any) {
             break;
         }
         case "move-troop": {
-            const parsed = line1.map((s) => { return parseInt(s); });
+            const parsed = line1.map((s) => parseInt(s));
             const [pI, tI] = [parsed[1], parsed[2]];
             const [x, y] = [parsed[3], parsed[4]];
             const troop = players[pI].troops[tI];
@@ -137,7 +137,7 @@ function receiveMessage(msg: any) {
             break;
         }
         case "add-troop": {
-            const parsed = line1.map((s) => { return parseInt(s); });
+            const parsed = line1.map((s) => parseInt(s));
             const [pI, x, y] = [parsed[1], parsed[2], parsed[3]];
             players[pI].troops.push(new Troop(x, y));
             break;
